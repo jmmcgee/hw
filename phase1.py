@@ -78,10 +78,12 @@ class PacketBuffer(object):
 
 class EventList(object):
     def __init__(self, buffer_max, arrival_interval_func, departure_interval_func):
-        self.head =         None
-        self.buffer =       PacketBuffer(buffer_max)
-        self.processing =   False
-        self.current_time = 0.0
+        self.head =                     None
+        self.buffer =                   PacketBuffer(buffer_max)
+        self.processing =               False
+        self.current_time =             0.0
+        self.previous_event_time =      0.0
+        self.previous_arrival_time =    0.0
 
         self.ARRIVAL_INTERVAL =     arrival_interval_func
         self.PROCESSING_INTERVAL =  departure_interval_func
@@ -135,15 +137,21 @@ class EventList(object):
         if self.head is not None:
             self.head.set_prev_event(None)
 
+        # Advance time to current event
+        self.previous_event_time = self.current_time
+        self.current_time = event.get_event_time()
+
+        if self.processing:
+            self.record_busy_time()
+
+        # Process the event
         if isinstance(event, ArrivalEvent):
             self.process_arrival(event)
+            self.previous_arrival_time = self.current_time
         elif isinstance(event, DepartureEvent):
             self.process_departure(event)
 
     def process_arrival(self, event):
-        # Advance time to current event
-        self.current_time = event.get_event_time()
-
         # Create new arrival in future
         self.add_arrival(self.ARRIVAL_INTERVAL())
 
@@ -164,12 +172,12 @@ class EventList(object):
             if self.buffer.push_packet(packet):
                 print 'Packet arrived to non-empty buffer of length {1} at {0}'.format(event.get_event_time(), self.buffer.queue.qsize())
             else:
+                self.record_packet_dropped()
                 print 'Packet arrived to full buffer and was dropped at {0}'.format(event.get_event_time())
 
-    def process_departure(self, event):
-        # Advance time to current event
-        self.current_time = event.get_event_time()
+        self.record_queue_length_by_time()
 
+    def process_departure(self, event):
         # Schedule next departure in the future
         if not self.buffer.empty():
             packet = self.buffer.pop_packet()
@@ -178,8 +186,6 @@ class EventList(object):
             self.processing = False
 
         print 'Packet processed and departed at {0}'.format(event.get_event_time())
-
-
 
     def __repr__(self):
         listrep = ''
@@ -192,18 +198,46 @@ class EventList(object):
 
         return listrep
 
+    def record_packet_dropped(self):
+        raise NotImplemented
+
 
 
 class Simulation(EventList):
     def __init__(self, events_to_simulate, buffer_size, arrival_interval_func, departure_interval_func):
         super(Simulation, self).__init__(buffer_size, arrival_interval_func, departure_interval_func)
-        self.events_to_simulate =       events_to_simulate
+
+        self.events_to_simulate = events_to_simulate
+
+        self.busy_time = 0
+        self.cumulative_queue_length_by_time = 0
+        self.packets_dropped = 0
 
     def run(self):
         for i in xrange(self.events_to_simulate):
             print 'Event {0}:'.format(i)
             self.process_event()
             print ''
+
+    def record_packet_dropped(self):
+        self.packets_dropped += 1
+
+    def record_busy_time(self):
+        self.busy_time += self.get_elapsed_event_interval()
+
+    def record_queue_length_by_time(self):
+        self.cumulative_queue_length_by_time += self.buffer.queue.qsize() * self.get_elapsed_arrival_interval()
+
+    def get_elapsed_arrival_interval(self):
+        return self.current_time - self.previous_arrival_time
+
+    def get_elapsed_event_interval(self):
+        return self.current_time - self.previous_event_time
+
+    def get_statistics(self):
+        print 'Packets dropped:     {0}'.format(self.packets_dropped)
+        print 'Utilization:         {0}%, {1} busy, {2} total'.format(self.busy_time / self.current_time, self.busy_time, self.current_time)
+        print 'Mean queue length:   {0}'.format(self.cumulative_queue_length_by_time / self.current_time)
 
 
 
@@ -212,7 +246,7 @@ class Simulation(EventList):
 EVENTS_TO_SIMULATE =    10000
 MAX_BUFFER =            500
 PARAM_LAMBDA =          0.4
-PARAM_MU =              0.7
+PARAM_MU =              0.6
 
 def NEG_EXP(param):
     # random.random is uniform over [0.0, 1.0)
@@ -228,3 +262,5 @@ def PROCESSING_INTERVAL():
 simulation = Simulation(EVENTS_TO_SIMULATE, MAX_BUFFER, ARRIVAL_INTERVAL, PROCESSING_INTERVAL)
 
 simulation.run()
+
+simulation.get_statistics()
