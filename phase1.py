@@ -162,18 +162,18 @@ class EventList(object):
             if self.processing:
                 self.buffer.push_packet(packet)
 
-                print 'Packet arrived to empty buffer and queued at {0}'.format(event.get_event_time())
+                self.log('Packet arrived to empty buffer and queued at {0}'.format(event.get_event_time()))
             else:
                 self.add_departure(packet.get_processing_interval())
                 self.processing = True
 
-                print 'Packet arrived to empty buffer for immediate processing at {0}'.format(event.get_event_time())
+                self.log('Packet arrived to empty buffer for immediate processing at {0}'.format(event.get_event_time()))
         else:
             if self.buffer.push_packet(packet):
-                print 'Packet arrived to non-empty buffer of length {1} at {0}'.format(event.get_event_time(), self.buffer.queue.qsize())
+                self.log('Packet arrived to non-empty buffer of length {1} at {0}'.format(event.get_event_time(), self.buffer.queue.qsize()))
             else:
                 self.record_packet_dropped()
-                print 'Packet arrived to full buffer and was dropped at {0}'.format(event.get_event_time())
+                self.log('Packet arrived to full buffer and was dropped at {0}'.format(event.get_event_time()))
 
         self.record_queue_length_by_time()
 
@@ -185,7 +185,7 @@ class EventList(object):
         else:
             self.processing = False
 
-        print 'Packet processed and departed at {0}'.format(event.get_event_time())
+        self.log('Packet processed and departed at {0}'.format(event.get_event_time()))
 
     def __repr__(self):
         listrep = ''
@@ -199,13 +199,23 @@ class EventList(object):
         return listrep
 
     def record_packet_dropped(self):
-        raise NotImplemented
+        raise NotImplemented()
 
+    def record_busy_time(self):
+        raise NotImplemented()
+
+    def record_queue_length(self):
+        raise NotImplemented()
+
+    def log(message):
+        raise NotImplemented()
 
 
 class Simulation(EventList):
-    def __init__(self, events_to_simulate, buffer_size, arrival_interval_func, departure_interval_func):
+    def __init__(self, events_to_simulate, buffer_size, arrival_interval_func, departure_interval_func, quiet=False):
         super(Simulation, self).__init__(buffer_size, arrival_interval_func, departure_interval_func)
+
+        self.quiet = quiet
 
         self.events_to_simulate = events_to_simulate
 
@@ -215,9 +225,9 @@ class Simulation(EventList):
 
     def run(self):
         for i in xrange(self.events_to_simulate):
-            print 'Event {0}:'.format(i)
+            self.log('Event {0}:'.format(i))
             self.process_event()
-            print ''
+            self.log('')
 
     def record_packet_dropped(self):
         self.packets_dropped += 1
@@ -234,6 +244,10 @@ class Simulation(EventList):
     def get_elapsed_event_interval(self):
         return self.current_time - self.previous_event_time
 
+    def log(self, message):
+        if not self.quiet:
+            print message
+
     def get_statistics(self):
         print 'Packets dropped:     {0}'.format(self.packets_dropped)
         print 'Utilization:         {0}%, {1} busy, {2} total'.format(self.busy_time / self.current_time, self.busy_time, self.current_time)
@@ -246,7 +260,7 @@ class Simulation(EventList):
 EVENTS_TO_SIMULATE =    10000
 MAX_BUFFER =            500
 PARAM_LAMBDA =          0.4
-PARAM_MU =              0.6
+PARAM_MU =              0.6 
 
 def NEG_EXP(param):
     # random.random is uniform over [0.0, 1.0)
@@ -259,7 +273,7 @@ def ARRIVAL_INTERVAL():
 def PROCESSING_INTERVAL():
     return NEG_EXP(PARAM_MU)
 
-simulation = Simulation(EVENTS_TO_SIMULATE, MAX_BUFFER, ARRIVAL_INTERVAL, PROCESSING_INTERVAL)
+simulation = Simulation(EVENTS_TO_SIMULATE, MAX_BUFFER, ARRIVAL_INTERVAL, PROCESSING_INTERVAL, quiet=True)
 
 simulation.run()
 
