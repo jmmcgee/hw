@@ -6,25 +6,7 @@ import math
 
 
 
-# Model parameters
-
-PARAM_LAMBDA = 0.5
-PARAM_MU = 0.2
-
-def NEG_EXP(param):
-    # random.random is uniform over [0.0, 1.0)
-    # math.log is base-e with no base kwarg
-    return (-1.0 / param) * math.log(1.0 - random.random())
-
-def ARRIVAL_INTERVAL():
-    return NEG_EXP(PARAM_LAMBDA)
-
-def PROCESSING_INTERVAL():
-    return NEG_EXP(PARAM_MU)
-
-
-
-# Simulation construcuts
+# Simulation constructs
 
 class Event(object):
     def __init__(self, event_time):
@@ -77,10 +59,10 @@ class PacketBuffer(object):
         self.queue = Queue.Queue(buffer_max)
 
     def push_packet(self, packet):
-        try:
+        if not self.full():
             self.queue.put(packet)
             return True
-        except Queue.Full:
+        else:
             return False
 
     def pop_packet(self):
@@ -95,13 +77,16 @@ class PacketBuffer(object):
 
 
 class EventList(object):
-    def __init__(self, buffer_max):
-        self.head = None
-        self.buffer = PacketBuffer(buffer_max)
-        self.processing = False
+    def __init__(self, buffer_max, arrival_interval_func, departure_interval_func):
+        self.head =         None
+        self.buffer =       PacketBuffer(buffer_max)
+        self.processing =   False
         self.current_time = 0.0
 
-        self.add_arrival(ARRIVAL_INTERVAL())
+        self.ARRIVAL_INTERVAL =     arrival_interval_func
+        self.PROCESSING_INTERVAL =  departure_interval_func
+
+        self.add_arrival(self.ARRIVAL_INTERVAL())
 
     def add_arrival(self, interval):
         return self.insert_event(ArrivalEvent(self.current_time + interval))
@@ -160,35 +145,30 @@ class EventList(object):
         self.current_time = event.get_event_time()
 
         # Create new arrival in future
-        self.add_arrival(ARRIVAL_INTERVAL())
+        self.add_arrival(self.ARRIVAL_INTERVAL())
 
         # Create packet from current arrival
-        packet = Packet(PROCESSING_INTERVAL())
+        packet = Packet(self.PROCESSING_INTERVAL())
 
         if self.buffer.empty():
             if self.processing:
                 self.buffer.push_packet(packet)
+
+                print 'Packet arrived to empty buffer and queued at {0}'.format(event.get_event_time())
             else:
                 self.add_departure(packet.get_processing_interval())
                 self.processing = True
 
-
-            print 'Packet arrived to empty buffer at {0}'.format(event.get_event_time())
-            pass
+                print 'Packet arrived to empty buffer for immediate processing at {0}'.format(event.get_event_time())
         else:
             if self.buffer.push_packet(packet):
-                print 'Packet arrived to non-empty buffer at {0}'.format(event.get_event_time())
-                pass
+                print 'Packet arrived to non-empty buffer of length {1} at {0}'.format(event.get_event_time(), self.buffer.queue.qsize())
             else:
-                print 'Packet dropped at {0}'.format(event.get_event_time())
-                pass
+                print 'Packet arrived to full buffer and was dropped at {0}'.format(event.get_event_time())
 
     def process_departure(self, event):
         # Advance time to current event
         self.current_time = event.get_event_time()
-
-        print 'Packet departed at {0}'.format(event.get_event_time())
-        pass
 
         # Schedule next departure in the future
         if not self.buffer.empty():
@@ -196,6 +176,8 @@ class EventList(object):
             self.add_departure(packet.get_processing_interval())
         else:
             self.processing = False
+
+        print 'Packet processed and departed at {0}'.format(event.get_event_time())
 
 
 
@@ -210,22 +192,39 @@ class EventList(object):
 
         return listrep
 
+
+
+class Simulation(EventList):
+    def __init__(self, events_to_simulate, buffer_size, arrival_interval_func, departure_interval_func):
+        super(Simulation, self).__init__(buffer_size, arrival_interval_func, departure_interval_func)
+        self.events_to_simulate =       events_to_simulate
+
+    def run(self):
+        for i in xrange(self.events_to_simulate):
+            print 'Event {0}:'.format(i)
+            self.process_event()
+            print ''
+
+
+
 # Simulation
- 
-EVENTS_TO_SIMULATE = 100
-MAX_BUFFER = 500
 
-print 'initializing'
+EVENTS_TO_SIMULATE =    10000
+MAX_BUFFER =            500
+PARAM_LAMBDA =          0.4
+PARAM_MU =              0.7
 
-simulation = EventList(MAX_BUFFER)
+def NEG_EXP(param):
+    # random.random is uniform over [0.0, 1.0)
+    # math.log is base-e with no base kwarg
+    return (-1.0 / param) * math.log(1.0 - random.random())
 
-print 'starting simulation\n\n\n'
+def ARRIVAL_INTERVAL():
+    return NEG_EXP(PARAM_LAMBDA)
 
-for i in xrange(EVENTS_TO_SIMULATE):
-    simulation.process_event()
-    print simulation.buffer.queue.qsize(), simulation.processing
-    print ''
-    # print simulation
-    # print ''
-    # print '--------------------'
-    # print ''
+def PROCESSING_INTERVAL():
+    return NEG_EXP(PARAM_MU)
+
+simulation = Simulation(EVENTS_TO_SIMULATE, MAX_BUFFER, ARRIVAL_INTERVAL, PROCESSING_INTERVAL)
+
+simulation.run()
