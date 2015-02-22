@@ -250,9 +250,17 @@ class Simulation(EventList):
             print message
 
     def get_statistics(self):
+        dropped = self.packets_dropped
+        utilization = self.busy_time / self.current_time
+        mean_queue_length = self.cumulative_queue_length_by_time / self.current_time
+
         print 'Packets dropped:     {0}'.format(self.packets_dropped)
-        print 'Utilization:         {0}%, {1} busy, {2} total'.format(self.busy_time / self.current_time, self.busy_time, self.current_time)
-        print 'Mean queue length:   {0}'.format(self.cumulative_queue_length_by_time / self.current_time)
+        print 'Utilization:         {0}%, {1} busy, {2} total'.format(
+                utilization, self.busy_time, self.current_time)
+        print 'Mean queue length:   {0}'.format(mean_queue_length)
+
+        return (dropped, utilization, mean_queue_length)
+        
 
 
 
