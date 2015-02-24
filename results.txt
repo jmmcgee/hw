@@ -2,29 +2,29 @@
 MAXBUFFER=1
 
 , ARRIVAL_RATE=0.2
-Packets dropped:     168
-Utilization:         0.197621976409%, 5075.89722653 busy, 25684.8824142 total
-Mean queue length:   0.0342134975797
+Packets dropped:     1656
+Utilization:         0.194191701256%, 49136.0401925 busy, 253028.527351 total
+Mean queue length:   0.0363582834711
 
 , ARRIVAL_RATE=0.4
-Packets dropped:     528
-Utilization:         0.355471210134%, 4703.92803329 busy, 13232.9367307 total
-Mean queue length:   0.116376727934
+Packets dropped:     5385
+Utilization:         0.361948856382%, 47654.9894874 busy, 131662.218701 total
+Mean queue length:   0.124173264062
 
 , ARRIVAL_RATE=0.6
-Packets dropped:     1092
-Utilization:         0.496602865436%, 4459.49785758 busy, 8980.00830838 total
-Mean queue length:   0.236817110784
+Packets dropped:     10147
+Utilization:         0.490798382326%, 45168.2067461 busy, 92030.0644271 total
+Mean queue length:   0.229677611425
 
 , ARRIVAL_RATE=0.8
-Packets dropped:     1572
-Utilization:         0.595907720666%, 4272.05358526 busy, 7168.98512489 total
-Mean queue length:   0.338838405259
+Packets dropped:     14594
+Utilization:         0.586571762371%, 42439.4267304 busy, 72351.636156 total
+Mean queue length:   0.319684909135
 
 , ARRIVAL_RATE=0.9
-Packets dropped:     1754
-Utilization:         0.633423604479%, 4085.16467354 busy, 6449.34076447 total
-Mean queue length:   0.373242955291
+Packets dropped:     17293
+Utilization:         0.626828601987%, 41164.2527766 busy, 65670.6676212 total
+Mean queue length:   0.368185317432
 
 =====================
 
@@ -33,28 +33,28 @@ MAXBUFFER=20
 
 , ARRIVAL_RATE=0.2
 Packets dropped:     0
-Utilization:         0.197623408658%, 5036.03446844 busy, 25482.9855564 total
-Mean queue length:   0.0487473616959
+Utilization:         0.199801867541%, 49844.837163 busy, 249471.327654 total
+Mean queue length:   0.0502109646335
 
 , ARRIVAL_RATE=0.4
 Packets dropped:     0
-Utilization:         0.39903508873%, 4974.98293302 busy, 12467.5324891 total
-Mean queue length:   0.257117076739
+Utilization:         0.403319957592%, 50221.3968472 busy, 124519.989408 total
+Mean queue length:   0.273366447394
 
 , ARRIVAL_RATE=0.6
 Packets dropped:     0
-Utilization:         0.604763552293%, 4963.77462189 busy, 8207.79394371 total
-Mean queue length:   0.924829741314
+Utilization:         0.59799299801%, 50023.7432495 busy, 83652.7240553 total
+Mean queue length:   0.917680087535
 
 , ARRIVAL_RATE=0.8
-Packets dropped:     0
-Utilization:         0.76416023742%, 4942.47898731 busy, 6467.85679925 total
-Mean queue length:   2.41107883468
+Packets dropped:     118
+Utilization:         0.80080107504%, 49922.5018782 busy, 62340.7028714 total
+Mean queue length:   3.12069692795
 
 , ARRIVAL_RATE=0.9
-Packets dropped:     34
-Utilization:         0.890643259894%, 4924.28648196 busy, 5528.91006277 total
-Mean queue length:   5.37292078683
+Packets dropped:     579
+Utilization:         0.88801803199%, 49773.1091707 busy, 56049.6604547 total
+Mean queue length:   5.48793685569
 
 =====================
 
@@ -63,28 +63,28 @@ MAXBUFFER=50
 
 , ARRIVAL_RATE=0.2
 Packets dropped:     0
-Utilization:         0.198252438164%, 5015.45941646 busy, 25298.3492304 total
-Mean queue length:   0.051205924831
+Utilization:         0.202710982576%, 50542.8262745 busy, 249334.424963 total
+Mean queue length:   0.0516921251106
 
 , ARRIVAL_RATE=0.4
 Packets dropped:     0
-Utilization:         0.387806059263%, 4890.03843373 busy, 12609.4946609 total
-Mean queue length:   0.232819730839
+Utilization:         0.400568010111%, 50052.0808144 busy, 124952.76595 total
+Mean queue length:   0.272303636419
 
 , ARRIVAL_RATE=0.6
 Packets dropped:     0
-Utilization:         0.602555455766%, 5005.8447537 busy, 8307.69135986 total
-Mean queue length:   0.946135209255
+Utilization:         0.604391762253%, 50147.0589007 busy, 82971.1158103 total
+Mean queue length:   0.924455568921
 
 , ARRIVAL_RATE=0.8
 Packets dropped:     0
-Utilization:         0.813162609787%, 5059.01404238 busy, 6221.4051427 total
-Mean queue length:   3.22601897149
+Utilization:         0.80456736366%, 50155.0318979 busy, 62337.8901049 total
+Mean queue length:   3.42518124545
 
 , ARRIVAL_RATE=0.9
-Packets dropped:     0
-Utilization:         0.898999909897%, 4996.29418915 busy, 5557.61367064 total
-Mean queue length:   5.83370883756
+Packets dropped:     39
+Utilization:         0.901660888464%, 49901.1235281 busy, 55343.560053 total
+Mean queue length:   9.28940391582
 
 =====================
 
