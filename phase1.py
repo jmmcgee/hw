@@ -255,7 +255,7 @@ class Simulation(EventList):
         mean_queue_length = self.cumulative_queue_length_by_time / self.current_time
 
         print 'Packets dropped:     {0}'.format(self.packets_dropped)
-        print 'Utilization:         {0}%, {1} busy, {2} total'.format(
+        print 'Utilization:         {0}, {1} busy, {2} total'.format(
                 utilization, self.busy_time, self.current_time)
         print 'Mean queue length:   {0}'.format(mean_queue_length)
 
