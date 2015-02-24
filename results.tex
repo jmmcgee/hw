@@ -1,0 +1,38 @@
+\documentclass[10pt, a4paper]{article}
+ 
+\usepackage{fancyhdr} 
+\usepackage[hmargin=3cm, vmargin=3cm]{geometry}
+\usepackage{fullpage}
+ 
+\usepackage{enumitem}
+\usepackage{framed}
+\usepackage{multicol}
+ 
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage[us,12hr]{datetime} % `us' makes \today behave as usual in TeX/LaTeX
+%\usepackage{mdframed}
+
+\usepackage{verbatim}
+ 
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{ECS 152A \\ Biswanath Mukherjee}
+\rhead{Joseph McGee \\ Kelvlin Lu \\ 24 Feb, 2014}
+\chead{Project Phase 1}
+\cfoot{\thepage}
+
+
+
+\headheight 40pt
+\headsep 10pt
+ 
+\begin{document}
+    \section*{Code}
+    \verbatiminput{phase1.py}
+    \section*{Results}
+    \verbatiminput{results.txt}
+\end{document}

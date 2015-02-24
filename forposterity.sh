@@ -1,3 +1,8 @@
+echo '########################'
+echo '##### results.txt ######'
+echo '########################'
+echo
+
 MAXBUFFER=0
 echo "====================="
 echo MAXBUFFER=${MAXBUFFER}
