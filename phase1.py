@@ -266,7 +266,7 @@ class Simulation(EventList):
 
 # Simulation
 def __main__(MAX_BUFFER, PARAM_MU, PARAM_LAMBDA):
-    EVENTS_TO_SIMULATE =    10000
+    EVENTS_TO_SIMULATE =    100000
     MAX_BUFFER = int(MAX_BUFFER)
     PARAM_LAMBDA = float(PARAM_LAMBDA)
     PARAM_MU = float(PARAM_MU)
