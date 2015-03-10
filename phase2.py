@@ -173,10 +173,13 @@ class Network(object):
 
                 if (frame_type == DataFrame):
                     # Enqueue an ack frame and attempt to transmit it
+                    # sending host is set to a waiting state
+                    #   no frames can be sent until ack releases lock
                     pass
 
                 if (frame_type == AckFrame):
                     # Acknowledge successful reciept of data frame
+                    # receiving host (which originally sent data) is not waiting
                     pass
 
 
