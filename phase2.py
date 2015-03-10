@@ -85,7 +85,7 @@ class Host(object):
     def __init__(self, host_id, network, PARAM_MU):
         self.host_id = host_id
         self.network = network
-        self.param_mu = PARAM_MU
+        self.PARAM_MU = PARAM_MU
 
         self.frame_queue = Queue.Queue(maxsize=0)
         self.ack_queue = Queue.Queue(maxsize=0)
@@ -95,7 +95,7 @@ class Host(object):
         self.unsuccessful_attempts = 0
 
     def create_arrival_event(self, current_time):
-        return FrameArrival(current_time + NEG_EXP(self.param_mu), self.host_id)
+        return FrameArrival(current_time + NEG_EXP(self.PARAM_MU), self.host_id)
 
     def enqueue_frame(self, frame):
         if(type(frame) == AckFrame):
