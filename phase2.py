@@ -5,6 +5,8 @@ import math
 
 
 
+DEBUG = True
+
 # Constants
 
 # Time to transmit a maximum 1500 (+44) byte MTU frame over a 11 Mbps network
@@ -181,12 +183,18 @@ class Network(object):
                     # Enqueue an ack frame and attempt to transmit it
                     # sending host is set to a waiting state
                     #   no frames can be sent until ack releases lock
-                    pass
+                    ack_response = AckFrame(frame.dest_host_id, frame.source_host_id)
+                    self.hosts[frame.dest_host_id].enqueue_frame(ack_response)
+
+                    self.events.put(TransmissionAttempt(self.time + SIFS, frame.dest_host_id))
 
                 if (frame_type == AckFrame):
                     # Acknowledge successful reciept of data frame
                     # receiving host (which originally sent data) is not waiting
-                    pass
+                    if DEBUG: 
+                        print 'Data frame successfully acknowledged'
+
+                # Reduce the backoff of all hosts
 
 
 
