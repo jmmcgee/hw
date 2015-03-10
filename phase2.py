@@ -56,7 +56,7 @@ class TransmissionAttempt(Event):
 
 class TransmissionCompletion(Event):
     def __init__(self, event_time, host_id):
-        super(Transmission, self).__init__(event_time, host_id)
+        super(TransmissionCompletion, self).__init__(event_time, host_id)
 
 
 
@@ -65,7 +65,6 @@ class Frame(object):
         self.transmission_time = transmission_time
         self.source_host_id = source_host_id
         self.dest_host_id = dest_host_id
-
 
 
 class DataFrame(Frame):
@@ -86,6 +85,7 @@ class Host(object):
     def __init__(self, host_id, network, PARAM_MU):
         self.host_id = host_id
         self.network = network
+        self.param_mu = PARAM_MU
 
         self.frame_queue = Queue.Queue(maxsize=0)
         self.ack_queue = Queue.Queue(maxsize=0)
@@ -95,7 +95,7 @@ class Host(object):
         self.unsuccessful_attempts = 0
 
     def create_arrival_event(self, current_time):
-        return FrameArrival(current_time + NEG_EXP(PARAM_MU), self.host_id)
+        return FrameArrival(current_time + NEG_EXP(self.param_mu), self.host_id)
 
     def enqueue_frame(self, frame):
         if(type(frame) == AckFrame):
@@ -105,7 +105,7 @@ class Host(object):
 
     def dequeue_frame(self):
         if(not self.ack_queue.empty()):
-            return ack_queue.get()
+            return self.ack_queue.get()
         else:
             return self.frame_queue.get()
 
@@ -127,6 +127,10 @@ class Host(object):
 
 class Network(object):
     def __init__(self, N, PARAM_LAMBDA, PARAM_MU):
+        self.N = N
+        self.PARAM_LAMBDA = PARAM_LAMBDA
+        self.PARAM_MU = PARAM_MU
+
         self.time = 0.0
         self.transmitting = False
 
@@ -164,10 +168,10 @@ class Network(object):
                 self.events.put(self.hosts[event.host_id].create_arrival_event(self.time))
 
                 # Choose a random neighbor and create a data frame for transmission
-                destination_host_ids = [i for i in xrange(N)]
+                destination_host_ids = [i for i in xrange(self.N)]
                 destination_host_ids.remove(event.host_id)
                 destination_host_id = random.choice(destination_host_ids)
-                self.hosts[event.host_id].enqueue_frame(DataFrame(PARAM_LAMBDA, event.host_id, destination_host_id))
+                self.hosts[event.host_id].enqueue_frame(DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id))
 
                 if not self.transmitting:
                     self.events.put(TransmissionAttempt(self.time + DIFS, event.host_id))
@@ -181,7 +185,7 @@ class Network(object):
                     self.hosts[event.host_id].reset_backoff()
 
                     transmission_time = frame.transmission_time
-                    self.events.put(TransmissionCompletion(self.time + transmission_time))
+                    self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
                     self.transmitting = frame
                 else:
                     self.hosts[event.host_id].start_backoff()
