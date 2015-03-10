@@ -91,6 +91,7 @@ class Host(object):
         self.ack_queue = Queue.Queue(maxsize=0)
 
         self.backoff = 0.0
+        self.is_backing_off = False
         self.unsuccessful_attempts = 0
 
     def create_arrival_event(self, current_time):
@@ -142,6 +143,19 @@ class Network(object):
             event_n += 1
             event = self.events.get()
             event_type = type(event)
+
+
+            if DEBUG:
+                print 'TIME is {time}'.format(time=self.time)
+
+            # Reduce the backoff of all hosts if idle
+            if not self.transmitting:
+                diff_time = event.event_time - self.time
+                backoffs = [host.backoff for host in self.hosts.values() if host.is_backing_off]
+                min_backoff = min(backoffs + [diff_time])
+                for host in self.hosts.values():
+                    if host.is_backing_off:
+                        host.backoff -= min_backoff
 
             self.time = event.event_time
 
