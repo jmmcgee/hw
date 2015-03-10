@@ -16,6 +16,8 @@ ACK_FRAME_TRANSMISSION = (64.0 / 1544.0) * 0.00112
 SIFS = 0.00005
 DIFS = 0.0001
 
+BACKOFF_T = 0.0005
+
 
 
 # Maths and distributions
@@ -76,21 +78,23 @@ class Host(object):
     def __init__(self, host_id, network, PARAM_MU):
         self.host_id = host_id
         self.network = network
-        self.PARAM_MU = PARAM_MU
+        PARAM_MU
 
         self.frame_queue = Queue.Queue(maxsize=0)
 
         self.backoff = 0.0
-
+        self.unsuccessful_attempts = 0
 
     def create_arrival_event(self, current_time):
-        return FrameArrival(current_time + NEG_EXP(self.PARAM_MU), self.host_id)
+        return FrameArrival(current_time + NEG_EXP(PARAM_MU), self.host_id)
 
     def enqueue_new_data_frame(self, frame):
         self.frame_queue.put(frame)
 
     def start_backoff(self):
-        pass
+        self.unsuccessful_attempts += 1
+        self.backoff = self.unsuccessful_attempts * BACKOFF_T
+
 
 
 class Network(object):
@@ -127,7 +131,7 @@ class Network(object):
                 if not self.busy:
                     self.events.put(TransmissionAttempt(self.time + SIFS, event.host_id))
                 else:
-                    pass
+                    self.hosts[event.host_id].start_backoff()
                     
 
 
