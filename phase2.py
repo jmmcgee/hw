@@ -110,19 +110,27 @@ class Host(object):
             return self.frame_queue.get()
 
     def start_backoff(self):
+        self.is_backing_off = True
         self.unsuccessful_attempts += 1
         self.backoff = math.floor(random.random() * self.unsuccessful_attempts * BACKOFF_T)
 
     def reset_backoff(self):
+        self.is_backing_off = False
         self.unsuccessful_attempts = 0
         self.backoff = 0
 
-    def decrement_backoff(self):
-        if self.backoff > 0:
-            self.backoff -= 1
+    def decrement_backoff(self, backoff_dec):
+        if self.backoff > 0 and self.is_backing_off:
+            self.backoff -= backoff_dec
+        if self.backoff < 0:
+            print 'ERROR: backoff for host {host_id} is {backoff}'.format(
+                    host_id=self.host_id,backoff=self.backoff)
 
     def get_backoff(self):
-        return self.backoff
+        if self.is_backing_off:
+            return self.backoff
+        else:
+            return None
 
 
 class Network(object):
@@ -149,17 +157,17 @@ class Network(object):
             event_type = type(event)
 
 
+            diff_time = event.event_time - self.time
             if DEBUG:
                 print 'TIME is {time}'.format(time=self.time)
 
             # Reduce the backoff of all hosts if idle
             if not self.transmitting:
-                diff_time = event.event_time - self.time
-                backoffs = [host.backoff for host in self.hosts.values() if host.is_backing_off]
+                backing_off_hosts = [host for host in self.hosts.values() if host.is_backing_off]
+                backoffs = [host.get_backoff() for host in backing_off_hosts]
                 min_backoff = min(backoffs + [diff_time])
-                for host in self.hosts.values():
-                    if host.is_backing_off:
-                        host.backoff -= min_backoff
+                for host in backing_off_hosts:
+                    host.decrement_backoff(min_backoff)
 
             self.time = event.event_time
 
@@ -182,6 +190,8 @@ class Network(object):
             if (event_type == TransmissionAttempt):
                 if not self.transmitting:
                     frame = self.hosts[event.host_id].dequeue_frame()
+
+                    # backoff should already be 0
                     self.hosts[event.host_id].reset_backoff()
 
                     transmission_time = frame.transmission_time
