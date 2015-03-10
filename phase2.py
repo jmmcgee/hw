@@ -84,9 +84,9 @@ class Host(object):
     def __init__(self, host_id, network, PARAM_MU):
         self.host_id = host_id
         self.network = network
-        PARAM_MU
 
         self.frame_queue = Queue.Queue(maxsize=0)
+        self.ack_queue = Queue.Queue(maxsize=0)
 
         self.backoff = 0.0
         self.unsuccessful_attempts = 0
@@ -95,10 +95,16 @@ class Host(object):
         return FrameArrival(current_time + NEG_EXP(PARAM_MU), self.host_id)
 
     def enqueue_frame(self, frame):
-        self.frame_queue.put(frame)
+        if(type(frame) == AckFrame):
+            self.ack_queue.put(frame)  
+        else:
+            self.frame_queue.put(frame)
 
     def dequeue_frame(self):
-        return self.frame_queue.get()
+        if(not self.ack_queue.empty()):
+            return ack_queue.get()
+        else:
+            return self.frame_queue.get()
 
     def start_backoff(self):
         self.unsuccessful_attempts += 1
