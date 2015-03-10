@@ -16,7 +16,7 @@ ACK_FRAME_TRANSMISSION = (64.0 / 1544.0) * 0.00112
 SIFS = 0.00005
 DIFS = 0.0001
 
-BACKOFF_T = 0.0005
+BACKOFF_T = 3
 
 
 
@@ -49,6 +49,12 @@ class FrameArrival(Event):
 class TransmissionAttempt(Event):
     def __init__(self, event_time, host_id):
         super(TransmissionAttempt, self).__init__(event_time, host_id)
+
+
+
+class TransmissionCompletion(Event):
+    def __init__(self, event_time, host_id):
+        super(Transmission, self).__init__(event_time, host_id)
 
 
 
@@ -88,19 +94,32 @@ class Host(object):
     def create_arrival_event(self, current_time):
         return FrameArrival(current_time + NEG_EXP(PARAM_MU), self.host_id)
 
-    def enqueue_new_data_frame(self, frame):
+    def enqueue_frame(self, frame):
         self.frame_queue.put(frame)
+
+    def dequeue_frame(self):
+        return self.frame_queue.get()
 
     def start_backoff(self):
         self.unsuccessful_attempts += 1
-        self.backoff = self.unsuccessful_attempts * BACKOFF_T
+        self.backoff = math.floor(random.random() * self.unsuccessful_attempts * BACKOFF_T)
 
+    def reset_backoff(self):
+        self.unsuccessful_attempts = 0
+        self.backoff = 0
+
+    def decrement_backoff(self):
+        if self.backoff > 0:
+            self.backoff -= 1
+
+    def get_backoff(self):
+        return self.backoff
 
 
 class Network(object):
     def __init__(self, N, PARAM_LAMBDA, PARAM_MU):
         self.time = 0.0
-        self.busy = False
+        self.transmitting = False
 
         self.hosts = dict((i, Host(i, self, PARAM_MU)) for i in xrange(N))
         self.events = Queue.PriorityQueue(maxsize=0)
@@ -126,14 +145,39 @@ class Network(object):
                 destination_host_ids = [i for i in xrange(N)]
                 destination_host_ids.remove(event.host_id)
                 destination_host_id = random.choice(destination_host_ids)
-                self.hosts[event.host_id].enqueue_new_data_frame(DataFrame(PARAM_LAMBDA, event.host_id, destination_host_id))
+                self.hosts[event.host_id].enqueue_frame(DataFrame(PARAM_LAMBDA, event.host_id, destination_host_id))
 
-                if not self.busy:
-                    self.events.put(TransmissionAttempt(self.time + SIFS, event.host_id))
+                if not self.transmitting:
+                    self.events.put(TransmissionAttempt(self.time + DIFS, event.host_id))
                 else:
                     self.hosts[event.host_id].start_backoff()
                     
 
+            if (event_type == TransmissionAttempt):
+                if not self.transmitting:
+                    frame = self.hosts[event.host_id].dequeue_frame()
+                    self.hosts[event.host_id].reset_backoff()
+
+                    transmission_time = frame.transmission_time
+                    self.events.put(TransmissionCompletion(self.time + transmission_time))
+                    self.transmitting = frame
+                else:
+                    self.hosts[event.host_id].start_backoff()
+
+            if (event_type == TransmissionCompletion):
+                frame = self.transmitting
+
+                self.transmitting = False
+
+                frame_type = type(frame)
+
+                if (frame_type == DataFrame):
+                    # Enqueue an ack frame and attempt to transmit it
+                    pass
+
+                if (frame_type == AckFrame):
+                    # Acknowledge successful reciept of data frame
+                    pass
 
 
 
