@@ -127,10 +127,10 @@ class Host(object):
     def decrement_backoff(self, backoff_dec):
         if self.backoff > 0 and self.is_backing_off:
             self.backoff -= backoff_dec
-        else if self.backoff == 0:
+        elif self.backoff == 0:
             # TODO send another transmission
             pass
-        else if self.backoff < 0:
+        elif self.backoff < 0:
             if DEBUG:
                 print 'ERROR: backoff for host {host_id} is {backoff}'.format(
                         host_id=self.host_id,backoff=self.backoff)
@@ -239,7 +239,7 @@ class Network(object):
                     if DEBUG: 
                         print 'Data frame successfully acknowledged'
 
-                    self.hosts[event.dest_host_id].sent_frames.remove(event.data_frame)
+                    self.hosts[frame.dest_host_id].sent_frames.remove(event.frame.data_frame)
 
                 # Reduce the backoff of all hosts
 
