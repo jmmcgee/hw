@@ -76,10 +76,10 @@ class DataFrame(Frame):
 
 
 class AckFrame(Frame):
-    def __init__(self, source_host_id, dest_host_id):
+    def __init__(self, source_host_id, dest_host_id, data_frame):
         transmission_time = ACK_FRAME_TRANSMISSION
         super(AckFrame, self).__init__(transmission_time, source_host_id, dest_host_id)
-
+        self.data_frame = data_frame
 
 
 class Host(object):
@@ -90,7 +90,7 @@ class Host(object):
 
         self.frame_queue = Queue.Queue(maxsize=0)
         self.ack_queue = Queue.Queue(maxsize=0)
-        self.last_frame = None
+        self.sent_frames = []
 
         self.backoff = 0.0
         self.is_backing_off = False
@@ -109,8 +109,9 @@ class Host(object):
         if(not self.ack_queue.empty()):
             return self.ack_queue.get()
         else:
-            self.last_frame = self.frame_queue.get()
-            return self.last_frame
+            frame = self.frame_queue.get()
+            self.sent_frames.append(frame)
+            return frame
 
     def start_backoff(self):
         self.is_backing_off = True
@@ -226,7 +227,7 @@ class Network(object):
                     # Enqueue an ack frame and attempt to transmit it
                     # sending host is set to a waiting state
                     #   no frames can be sent until ack releases lock
-                    ack_response = AckFrame(frame.dest_host_id, frame.source_host_id)
+                    ack_response = AckFrame(frame.dest_host_id, frame.source_host_id, frame)
                     self.hosts[frame.dest_host_id].enqueue_frame(ack_response)
 
                     self.events.put(TransmissionStart(self.time + SIFS, frame.dest_host_id))
@@ -236,6 +237,8 @@ class Network(object):
                     # receiving host (which originally sent data) is not waiting
                     if DEBUG: 
                         print 'Data frame successfully acknowledged'
+
+                    self.hosts[event.dest_host_id].sent_frames.remove(event.data_frame)
 
                 # Reduce the backoff of all hosts
 
