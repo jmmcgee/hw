@@ -114,6 +114,9 @@ class Host(object):
             self.sent_frames.append(frame)
             return frame
 
+    def acknowledge(self, frame):
+        self.sent_frames.remove(frame)
+
     def start_backoff(self):
         self.is_backing_off = True
         self.unsuccessful_attempts += 1
@@ -239,7 +242,7 @@ class Network(object):
                     if DEBUG: 
                         print 'Data frame successfully acknowledged'
 
-                    self.hosts[frame.dest_host_id].sent_frames.remove(event.frame.data_frame)
+                    self.hosts[frame.dest_host_id].acknowledge(event.frame.data_frame)
 
                 # Reduce the backoff of all hosts
 
