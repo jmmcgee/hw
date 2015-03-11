@@ -48,9 +48,9 @@ class FrameArrival(Event):
 
 
 
-class TransmissionAttempt(Event):
+class TransmissionStart(Event):
     def __init__(self, event_time, host_id):
-        super(TransmissionAttempt, self).__init__(event_time, host_id)
+        super(TransmissionStart, self).__init__(event_time, host_id)
 
 
 
@@ -186,12 +186,12 @@ class Network(object):
                 self.hosts[event.host_id].enqueue_frame(DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id))
 
                 if not self.transmitting:
-                    self.events.put(TransmissionAttempt(self.time + DIFS, event.host_id))
+                    self.events.put(TransmissionStart(self.time + DIFS, event.host_id))
                 else:
                     self.hosts[event.host_id].start_backoff()
                     
 
-            if (event_type == TransmissionAttempt):
+            if (event_type == TransmissionStart):
                 if not self.transmitting:
                     frame = self.hosts[event.host_id].dequeue_frame()
 
@@ -218,7 +218,7 @@ class Network(object):
                     ack_response = AckFrame(frame.dest_host_id, frame.source_host_id)
                     self.hosts[frame.dest_host_id].enqueue_frame(ack_response)
 
-                    self.events.put(TransmissionAttempt(self.time + SIFS, frame.dest_host_id))
+                    self.events.put(TransmissionStart(self.time + SIFS, frame.dest_host_id))
 
                 if (frame_type == AckFrame):
                     # Acknowledge successful reciept of data frame
