@@ -122,6 +122,9 @@ class Host(object):
         self.unsuccessful_attempts += 1
         self.backoff = math.floor(random.random() * self.unsuccessful_attempts * BACKOFF_T)
 
+    def stop_backoff(self):
+        self.is_backing_off = False
+
     def reset_backoff(self):
         self.is_backing_off = False
         self.unsuccessful_attempts = 0
@@ -168,20 +171,30 @@ class Network(object):
             event = self.events.get()
             event_type = type(event)
 
-
             diff_time = event.event_time - self.time
-            if DEBUG:
-                print 'TIME is {time}'.format(time=self.time)
-
+    
             # Reduce the backoff of all hosts if idle
+            rewind_time_backoff = False
+
             if not self.transmitting:
                 backing_off_hosts = [host for host in self.hosts.values() if host.is_backing_off]
                 backoffs = [host.get_backoff() for host in backing_off_hosts]
                 min_backoff = min(backoffs + [diff_time])
                 for host in backing_off_hosts:
                     host.decrement_backoff(min_backoff)
+                    if (host.get_backoff() == 0.0) and (host.is_backing_off):
+                        host.stop_backoff()
+                        rewind_time_backoff = True
+
+                        self.events.put(TransmissionStart(self.time + min_backoff, host.host_id))
+
+            if rewind_time_backoff:
+                self.events.put(event)
+                continue
 
             self.time = event.event_time
+            if DEBUG:
+                print 'TIME is {time}'.format(time=self.time)
 
             if (event_type == FrameArrival):
                 # Create next frame arrival event
@@ -242,11 +255,12 @@ class Network(object):
                     if DEBUG: 
                         print 'Data frame successfully acknowledged'
 
-                    self.hosts[frame.dest_host_id].acknowledge(event.frame.data_frame)
+                    host = self.hosts[frame.dest_host_id]
+                    host.acknowledge(event.frame.data_frame)
+                    host.reset_backoff()
 
-                # Reduce the backoff of all hosts
-
-
+                if (DEBUG and frame.corrupted):
+                    print 'corrupted'
 
 network = Network(10, 0.3, 0.5)
 network.simulate(100000)
