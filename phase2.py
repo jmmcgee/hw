@@ -197,8 +197,8 @@ class Network(object):
                 # We dont't care what's happening, start transmitting
                 frame = self.hosts[event.host_id].dequeue_frame()
                 if frame in self.transmitting:
-                    #Re-transmission
-                    #
+                    raise Exception('should not occur')
+                    pass
 
                 transmission_time = frame.transmission_time
                 self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
