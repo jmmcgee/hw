@@ -89,6 +89,7 @@ class Host(object):
 
         self.frame_queue = Queue.Queue(maxsize=0)
         self.ack_queue = Queue.Queue(maxsize=0)
+        self.last_frame = None
 
         self.backoff = 0.0
         self.is_backing_off = False
@@ -107,7 +108,7 @@ class Host(object):
         if(not self.ack_queue.empty()):
             return self.ack_queue.get()
         else:
-            return self.frame_queue.get()
+            return last_frame = self.frame_queue.get()
 
     def start_backoff(self):
         self.is_backing_off = True
@@ -144,7 +145,7 @@ class Network(object):
         self.PARAM_MU = PARAM_MU
 
         self.time = 0.0
-        self.transmitting = False
+        self.transmitting = []
 
         self.hosts = dict((i, Host(i, self, PARAM_MU)) for i in xrange(N))
         self.events = Queue.PriorityQueue(maxsize=0)
@@ -192,23 +193,25 @@ class Network(object):
                     
 
             if (event_type == TransmissionStart):
-                if not self.transmitting:
-                    frame = self.hosts[event.host_id].dequeue_frame()
+                # We dont't care what's happening, start transmitting
+                frame = self.hosts[event.host_id].dequeue_frame()
+                if frame in self.transmitting:
+                    #Re-transmission
+                    #
 
-                    # backoff should already be 0
-                    self.hosts[event.host_id].reset_backoff()
-
-                    transmission_time = frame.transmission_time
-                    self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
-                    self.transmitting = frame
-                else:
-                    self.hosts[event.host_id].start_backoff()
+                transmission_time = frame.transmission_time
+                self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
+                self.transmitting.append(frame)
 
             if (event_type == TransmissionCompletion):
-                frame = self.transmitting
+                host = self.hosts[event.host_id]
+                frame = host.last_frame
 
-                self.transmitting = False
+                if (last_frame == None):
+                    if DEBUG:
+                        print 'last_frame for completing transmission on host {host} is over'.format(host=host.host_id)
 
+                self.transmitting.remove(frame)
                 frame_type = type(frame)
 
                 if (frame_type == DataFrame):
