@@ -55,8 +55,9 @@ class TransmissionStart(Event):
 
 
 class TransmissionCompletion(Event):
-    def __init__(self, event_time, host_id):
+    def __init__(self, event_time, host_id, frame):
         super(TransmissionCompletion, self).__init__(event_time, host_id)
+        self.frame = frame
 
 
 
@@ -204,7 +205,7 @@ class Network(object):
 
                 transmission_time = frame.transmission_time
 
-                self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
+                self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id, frame))
 
                 self.transmitting.append(frame)
 
@@ -214,7 +215,7 @@ class Network(object):
 
             if (event_type == TransmissionCompletion):
                 host = self.hosts[event.host_id]
-                frame = host.last_frame
+                frame = event.frame
 
                 if (frame == None):
                     if DEBUG:
