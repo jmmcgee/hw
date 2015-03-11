@@ -303,7 +303,7 @@ class Network(object):
                 if frame in host.sent_frames:
                     host.resend_frame(frame)
                     host.start_backoff()
-                    print 'timeout {0}'.format(host.unsuccessful_attempts)
+                    print 'timeout at host {0}, unsuccessful attempts: {1}'.format(host.host_id, host.unsuccessful_attempts)
 
 
 
