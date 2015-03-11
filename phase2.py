@@ -122,9 +122,13 @@ class Host(object):
     def decrement_backoff(self, backoff_dec):
         if self.backoff > 0 and self.is_backing_off:
             self.backoff -= backoff_dec
-        if self.backoff < 0:
-            print 'ERROR: backoff for host {host_id} is {backoff}'.format(
-                    host_id=self.host_id,backoff=self.backoff)
+        else if self.backoff == 0:
+            # TODO send another transmission
+            pass
+        else if self.backoff < 0:
+            if DEBUG:
+                print 'ERROR: backoff for host {host_id} is {backoff}'.format(
+                        host_id=self.host_id,backoff=self.backoff)
 
     def get_backoff(self):
         if self.is_backing_off:
