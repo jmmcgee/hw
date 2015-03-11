@@ -108,7 +108,8 @@ class Host(object):
         if(not self.ack_queue.empty()):
             return self.ack_queue.get()
         else:
-            return last_frame = self.frame_queue.get()
+            self.last_frame = self.frame_queue.get()
+            return self.last_frame
 
     def start_backoff(self):
         self.is_backing_off = True
@@ -207,7 +208,7 @@ class Network(object):
                 host = self.hosts[event.host_id]
                 frame = host.last_frame
 
-                if (last_frame == None):
+                if (frame == None):
                     if DEBUG:
                         print 'last_frame for completing transmission on host {host} is over'.format(host=host.host_id)
 
