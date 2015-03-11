@@ -18,7 +18,8 @@ ACK_FRAME_TRANSMISSION = (64.0 / 1544.0) * 0.00112
 SIFS = 0.00005
 DIFS = 0.0001
 
-BACKOFF_T = 3
+BACKOFF_T = 1
+TIMEOUT_T = 3
 
 
 
@@ -48,6 +49,12 @@ class FrameArrival(Event):
 
 
 
+class TransmissionAttempt(Event):
+    def __init__(self, event_time, host_id):
+        super(TransmissionAttempt, self).__init__(event_time, host_id)
+
+
+
 class TransmissionStart(Event):
     def __init__(self, event_time, host_id):
         super(TransmissionStart, self).__init__(event_time, host_id)
@@ -61,12 +68,20 @@ class TransmissionCompletion(Event):
 
 
 
+class TransmissionTimeout(Event):
+    def __init__(self, event_time, host_id, frame):
+        super(TransmissionTimeout, self).__init__(event_time, host_id)
+        self.frame = frame
+
+
+
 class Frame(object):
     def __init__(self, transmission_time, source_host_id, dest_host_id):
         self.transmission_time = transmission_time
         self.source_host_id = source_host_id
         self.dest_host_id = dest_host_id
         self.corrupted = False
+
 
 
 class DataFrame(Frame):
@@ -83,6 +98,7 @@ class AckFrame(Frame):
         self.data_frame = data_frame
 
 
+
 class Host(object):
     def __init__(self, host_id, network, PARAM_MU):
         self.host_id = host_id
@@ -91,6 +107,7 @@ class Host(object):
 
         self.frame_queue = Queue.Queue(maxsize=0)
         self.ack_queue = Queue.Queue(maxsize=0)
+        self.resend_queue = Queue.Queue(maxsize=0)
         self.sent_frames = []
 
         self.backoff = 0.0
@@ -100,19 +117,29 @@ class Host(object):
     def create_arrival_event(self, current_time):
         return FrameArrival(current_time + NEG_EXP(self.PARAM_MU), self.host_id)
 
+    def resend_frame(self, frame):
+        self.resend_queue.put(frame)
+
     def enqueue_frame(self, frame):
-        if(type(frame) == AckFrame):
+        if (type(frame) == AckFrame):
             self.ack_queue.put(frame)  
         else:
             self.frame_queue.put(frame)
 
     def dequeue_frame(self):
-        if(not self.ack_queue.empty()):
+        if (not self.ack_queue.empty()):
             return self.ack_queue.get()
-        else:
+        elif (not self.resend_queue.empty()):
+            return self.resend_queue.get()
+        elif (not self.frame_queue.empty()):
             frame = self.frame_queue.get()
             self.sent_frames.append(frame)
             return frame
+        else:
+            return None
+
+    def has_frame_to_send(self):
+        return (not self.resend_queue.empty()) or (not self.frame_queue.empty()) or (not self.ack_queue.empty())
 
     def acknowledge(self, frame):
         self.sent_frames.remove(frame)
@@ -161,7 +188,7 @@ class Network(object):
         self.events = Queue.PriorityQueue(maxsize=0)
 
         for i, host in self.hosts.iteritems():
-            self.events.put(host.create_arrival_event(self.time))
+            self.events.put(host.create_arrival_event(0.0))
 
     def simulate(self, limit):
         event_n = 0
@@ -206,11 +233,16 @@ class Network(object):
                 destination_host_id = random.choice(destination_host_ids)
                 self.hosts[event.host_id].enqueue_frame(DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id))
 
-                if not self.transmitting:
-                    self.events.put(TransmissionStart(self.time + DIFS, event.host_id))
-                else:
-                    self.hosts[event.host_id].start_backoff()
-                    
+                self.events.put(TransmissionAttempt(self.time, event.host_id))
+
+            if (event_type == TransmissionAttempt):
+                host = self.hosts[event.host_id]
+
+                if host.has_frame_to_send():
+                    if not self.transmitting:
+                        self.events.put(TransmissionStart(self.time + DIFS, event.host_id))
+                    elif not host.is_backing_off:
+                        host.start_backoff()
 
             if (event_type == TransmissionStart):
                 # We dont't care what's happening, start transmitting
@@ -224,6 +256,9 @@ class Network(object):
                 self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id, frame))
 
                 self.transmitting.append(frame)
+
+                if (type(frame) == DataFrame):
+                    self.events.put(TransmissionTimeout(self.time + TIMEOUT_T, event.host_id, frame))
 
                 if (len(self.transmitting) > 1):
                     for frame in self.transmitting:
@@ -252,15 +287,25 @@ class Network(object):
                 if ((frame_type == AckFrame) and (not frame.corrupted)):
                     # Acknowledge successful reciept of data frame
                     # receiving host (which originally sent data) is not waiting
-                    if DEBUG: 
+                    if DEBUG:
                         print 'Data frame successfully acknowledged'
 
                     host = self.hosts[frame.dest_host_id]
                     host.acknowledge(event.frame.data_frame)
                     host.reset_backoff()
 
-                if (DEBUG and frame.corrupted):
-                    print 'corrupted'
+                    self.events.put(TransmissionAttempt(self.time, host.host_id))
+
+            if (event_type == TransmissionTimeout):
+                host = self.hosts[event.host_id]
+                frame = event.frame
+
+                if frame in host.sent_frames:
+                    host.resend_frame(frame)
+                    host.start_backoff()
+                    print 'timeout {0}'.format(host.unsuccessful_attempts)
+
+
 
 network = Network(10, 0.3, 0.5)
 network.simulate(100000)
