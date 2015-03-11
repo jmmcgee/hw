@@ -65,6 +65,7 @@ class Frame(object):
         self.transmission_time = transmission_time
         self.source_host_id = source_host_id
         self.dest_host_id = dest_host_id
+        self.corrupted = False
 
 
 class DataFrame(Frame):
@@ -201,8 +202,14 @@ class Network(object):
                     pass
 
                 transmission_time = frame.transmission_time
+
                 self.events.put(TransmissionCompletion(self.time + transmission_time, event.host_id))
+
                 self.transmitting.append(frame)
+
+                if (len(self.transmitting) > 1):
+                    for frame in self.transmitting:
+                        frame.corrupted = True
 
             if (event_type == TransmissionCompletion):
                 host = self.hosts[event.host_id]
@@ -215,7 +222,7 @@ class Network(object):
                 self.transmitting.remove(frame)
                 frame_type = type(frame)
 
-                if (frame_type == DataFrame):
+                if ((frame_type == DataFrame) and (not frame.corrupted)):
                     # Enqueue an ack frame and attempt to transmit it
                     # sending host is set to a waiting state
                     #   no frames can be sent until ack releases lock
@@ -224,7 +231,7 @@ class Network(object):
 
                     self.events.put(TransmissionStart(self.time + SIFS, frame.dest_host_id))
 
-                if (frame_type == AckFrame):
+                if ((frame_type == AckFrame) and (not frame.corrupted)):
                     # Acknowledge successful reciept of data frame
                     # receiving host (which originally sent data) is not waiting
                     if DEBUG: 
