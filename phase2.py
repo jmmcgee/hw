@@ -5,7 +5,7 @@ import math
 
 
 
-DEBUG = True
+DEBUG = False
 
 # Constants
 
@@ -88,12 +88,14 @@ class Frame(object):
 
 
 class DataFrame(Frame):
-    def __init__(self, PARAM_MU, source_host_id, dest_host_id):
+    def __init__(self, PARAM_MU, source_host_id, dest_host_id, creation_time):
         r = NEG_EXP(PARAM_MU)
         r = 1.0 if r > 1.0 else r
         transmission_time = DATA_FRAME_MAX_TRANSMISSION * r
         bytes = math.floor((1544 * r) + 1)
         super(DataFrame, self).__init__(transmission_time, bytes, source_host_id, dest_host_id)
+
+        self.creation_time = creation_time
 
     def __repr__(self):
         return '<DataFrame {0} ({1} to {2})>'.format(id(self), self.source_host_id, self.dest_host_id)
@@ -205,6 +207,8 @@ class Network(object):
 
         self.statistics = {
             'bytes_sent': 0,
+            'delay': 0.0,
+            'packets_sent': 0,
         }
 
     def simulate(self, limit):
@@ -262,7 +266,7 @@ class Network(object):
                 destination_host_ids.remove(event.host_id)
                 destination_host_id = random.choice(destination_host_ids)
 
-                new_data_frame = DataFrame(self.PARAM_MU, event.host_id, destination_host_id)
+                new_data_frame = DataFrame(self.PARAM_MU, event.host_id, destination_host_id, self.time)
 
                 self.hosts[event.host_id].enqueue_frame(new_data_frame)
 
@@ -300,7 +304,6 @@ class Network(object):
                 self.transmitting.append(frame)
 
                 if (type(frame) == DataFrame):
-                    print 'timeout placed at time {0}'.format(self.time + TIMEOUT_T)
                     self.events.put(TransmissionTimeout(self.time + TIMEOUT_T, event.host_id, frame))
 
                 if (len(self.transmitting) > 1):
@@ -338,6 +341,9 @@ class Network(object):
 
                     self.events.put(TransmissionStart(self.time + SIFS, frame.dest_host_id))
 
+                    self.statistics['delay'] += self.time - frame.creation_time
+                    self.statistics['packets_sent'] += 1
+
                 if ((frame_type == AckFrame) and (not frame.corrupted)):
                     # Acknowledge successful reciept of data frame
                     # receiving host (which originally sent data) is not waiting
@@ -348,7 +354,7 @@ class Network(object):
 
                     self.events.put(TransmissionAttempt(self.time, host.host_id))
 
-                    self.statistics['bytes_sent'] += event.frame.data_frame.bytes
+                    self.statistics['bytes_sent'] += frame.data_frame.bytes
 
                 if DEBUG:
                     print 'Transmission of {0} has completed. It was{1} corrupted.'.format(frame, '' if frame.corrupted else ' not')
@@ -366,7 +372,8 @@ class Network(object):
                         print 'Host {0} has entered backoff with {1} unsuccessful attempts.'.format(host.host_id, host.unsuccessful_attempts)
                         print 'Host {0} has backoff of {1}'.format(host.host_id, host.get_backoff())
 
-            print
+            if DEBUG:
+                print
 
 
 
@@ -374,4 +381,8 @@ if __name__ == '__main__':
     network = Network(10, 0.9, 0.5)
     network.simulate(5000)
 
-    print 'Avg. Throughput: {0}bps'.format((network.statistics['bytes_sent'] * 8) / network.time)
+    avg_throughput = (network.statistics['bytes_sent'] * 8) / network.time
+    avg_network_delay = network.statistics['delay'] / network.statistics['packets_sent']
+
+    print 'Avg. Throughput: {0}bps'.format(avg_throughput)
+    print 'Avg. Network Delay: {0}s'.format(avg_network_delay)
