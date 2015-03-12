@@ -25,10 +25,10 @@ TIMEOUT_T = 0.05
 
 # Maths and distributions
 
-def NEG_EXP(PARAM_LAMBDA):
+def NEG_EXP(PARAM):
     # random.random is uniform over [0.0, 1.0)
     # math.log is base-e with no base kwarg
-    return (-1.0 / PARAM_LAMBDA) * math.log(1.0 - random.random())
+    return (-1.0 / PARAM) * math.log(1.0 - random.random())
 
 
 
@@ -85,8 +85,8 @@ class Frame(object):
 
 
 class DataFrame(Frame):
-    def __init__(self, PARAM_LAMBDA, source_host_id, dest_host_id):
-        transmission_time = DATA_FRAME_MAX_TRANSMISSION * NEG_EXP(PARAM_LAMBDA)
+    def __init__(self, PARAM_MU, source_host_id, dest_host_id):
+        transmission_time = DATA_FRAME_MAX_TRANSMISSION * NEG_EXP(PARAM_MU)
         super(DataFrame, self).__init__(transmission_time, source_host_id, dest_host_id)
 
 
@@ -184,7 +184,7 @@ class Network(object):
         self.time = 0.0
         self.transmitting = []
 
-        self.hosts = dict((i, Host(i, self, PARAM_MU)) for i in xrange(N))
+        self.hosts = dict((i, Host(i, self, self.PARAM_MU)) for i in xrange(N))
         self.events = Queue.PriorityQueue(maxsize=0)
 
         for i, host in self.hosts.iteritems():
@@ -192,7 +192,6 @@ class Network(object):
 
     def simulate(self, limit):
         event_n = 0
-        limit = 10
 
         while((not self.events.empty()) and (event_n < limit)):
             event_n += 1
@@ -217,7 +216,6 @@ class Network(object):
                         self.events.put(TransmissionStart(self.time + min_backoff, host.host_id))
 
             if rewind_time_backoff:
-                print 'min_backoff {0}'.format(min_backoff)
                 self.time += min_backoff
                 self.events.put(event)
                 continue
@@ -235,7 +233,7 @@ class Network(object):
                 destination_host_ids.remove(event.host_id)
                 destination_host_id = random.choice(destination_host_ids)
 
-                new_data_frame = DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id)
+                new_data_frame = DataFrame(self.PARAM_MU, event.host_id, destination_host_id)
 
                 self.hosts[event.host_id].enqueue_frame(new_data_frame)
 
@@ -253,8 +251,8 @@ class Network(object):
                     elif not host.is_backing_off:
                         host.start_backoff()
 
-                if DEBUG:
-                    print 'Host {0} has the intent of transmitting a frame.'.format(host.host_id)
+                    if DEBUG:
+                        print 'Host {0} has the intent of transmitting a frame.'.format(host.host_id)
 
             if (event_type == TransmissionStart):
                 # We dont't care what's happening, start transmitting
@@ -279,7 +277,7 @@ class Network(object):
                         print 'Corruption has occured.'
 
                 if DEBUG:
-                    print 'Host {0} has begun to transmit {1}'.format(event.host_id, frame)
+                    print 'Host {0} has begun to transmit {1} from host {2} to host {3}'.format(event.host_id, frame, frame.source_host_id, frame.dest_host_id)
 
             if (event_type == TransmissionCompletion):
                 host = self.hosts[event.host_id]
@@ -326,6 +324,7 @@ class Network(object):
                         print '{0} from host {1} timed out.'.format(frame, host.host_id)
 
 
+            print
 
-network = Network(2, 0.1, 0.5)
+network = Network(10, 0.9, 0.5)
 network.simulate(100000)
