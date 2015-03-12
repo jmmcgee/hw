@@ -222,7 +222,8 @@ class Network(object):
 
             self.time = event.event_time
             if DEBUG:
-                print 'TIME is {time}s'.format(time=self.time)
+                transmitting_hosts = [frame.source_host_id for frame in self.transmitting]
+                print 'TIME: {time}s\t{transmitting_hosts}'.format(time=self.time, transmitting_hosts=transmitting_hosts)
 
             if (event_type == FrameArrival):
                 # Create next frame arrival event
@@ -250,6 +251,9 @@ class Network(object):
                         self.events.put(TransmissionStart(self.time + DIFS, event.host_id))
                     elif not host.is_backing_off:
                         host.start_backoff()
+
+                        if DEBUG:
+                            print 'Host {0} has entered backoff with {1} unsuccessful attempts.'.format(host.host_id, host.unsuccessful_attempts)
 
                     if DEBUG:
                         print 'Host {0} has the intent of transmitting a frame.'.format(host.host_id)
@@ -319,6 +323,9 @@ class Network(object):
                 if frame in host.sent_frames:
                     host.resend_frame(frame)
                     host.start_backoff()
+
+                    if DEBUG:
+                        print 'Host {0} has entered backoff with {1} unsuccessful attempts.'.format(host.host_id, host.unsuccessful_attempts)
 
                     if DEBUG:
                         print '{0} from host {1} timed out.'.format(frame, host.host_id)
