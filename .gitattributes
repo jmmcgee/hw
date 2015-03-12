@@ -1,3 +1,4 @@
 * auto
 
 *.python text
+*.docx diff=pandoc
