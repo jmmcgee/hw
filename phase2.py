@@ -18,7 +18,7 @@ ACK_FRAME_TRANSMISSION = (64.0 / 1544.0) * 0.00112
 SIFS = 0.00005
 DIFS = 0.0001
 
-BACKOFF_T = 0.001
+# BACKOFF_T = 0.001
 TIMEOUT_T = 0.01
 
 BACKOFF_ATTEMPT_LIMIT = 10
@@ -242,7 +242,8 @@ class Network(object):
                             host.sent_frames.remove(dropped_frame)
                             self.events.put(TransmissionAttempt(self.time + min_backoff, host.host_id))
 
-                            print 'Host {0} has reached maximum unsuccessful attempts. Dropping frame.'.format(host.host_id)
+                            if DEBUG:    
+                                print 'Host {0} has reached maximum unsuccessful attempts. Dropping frame.'.format(host.host_id)
 
 
 
@@ -378,7 +379,9 @@ class Network(object):
 
 
 if __name__ == '__main__':
-    network = Network(10, 0.9, 0.5)
+    BACKOFF_T = 0.001
+
+    network = Network(20, 0.6, 0.5)
     network.simulate(5000)
 
     avg_throughput = (network.statistics['bytes_sent'] * 8) / network.time
@@ -386,3 +389,4 @@ if __name__ == '__main__':
 
     print 'Avg. Throughput: {0}bps'.format(avg_throughput)
     print 'Avg. Network Delay: {0}s'.format(avg_network_delay)
+    print
