@@ -18,8 +18,8 @@ ACK_FRAME_TRANSMISSION = (64.0 / 1544.0) * 0.00112
 SIFS = 0.00005
 DIFS = 0.0001
 
-BACKOFF_T = 1
-TIMEOUT_T = 3
+BACKOFF_T = 0.001
+TIMEOUT_T = 0.05
 
 
 
@@ -192,6 +192,7 @@ class Network(object):
 
     def simulate(self, limit):
         event_n = 0
+        limit = 10
 
         while((not self.events.empty()) and (event_n < limit)):
             event_n += 1
@@ -216,12 +217,14 @@ class Network(object):
                         self.events.put(TransmissionStart(self.time + min_backoff, host.host_id))
 
             if rewind_time_backoff:
+                print 'min_backoff {0}'.format(min_backoff)
+                self.time += min_backoff
                 self.events.put(event)
                 continue
 
             self.time = event.event_time
             if DEBUG:
-                print 'TIME is {time}'.format(time=self.time)
+                print 'TIME is {time}s'.format(time=self.time)
 
             if (event_type == FrameArrival):
                 # Create next frame arrival event
@@ -231,9 +234,15 @@ class Network(object):
                 destination_host_ids = [i for i in xrange(self.N)]
                 destination_host_ids.remove(event.host_id)
                 destination_host_id = random.choice(destination_host_ids)
-                self.hosts[event.host_id].enqueue_frame(DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id))
+
+                new_data_frame = DataFrame(self.PARAM_LAMBDA, event.host_id, destination_host_id)
+
+                self.hosts[event.host_id].enqueue_frame(new_data_frame)
 
                 self.events.put(TransmissionAttempt(self.time, event.host_id))
+
+                if DEBUG:
+                    print 'A new data frame has been generated at host {0}. Its content will take {1}s to transmit.'.format(event.host_id, new_data_frame.transmission_time)
 
             if (event_type == TransmissionAttempt):
                 host = self.hosts[event.host_id]
@@ -243,6 +252,9 @@ class Network(object):
                         self.events.put(TransmissionStart(self.time + DIFS, event.host_id))
                     elif not host.is_backing_off:
                         host.start_backoff()
+
+                if DEBUG:
+                    print 'Host {0} has the intent of transmitting a frame.'.format(host.host_id)
 
             if (event_type == TransmissionStart):
                 # We dont't care what's happening, start transmitting
@@ -263,6 +275,11 @@ class Network(object):
                 if (len(self.transmitting) > 1):
                     for frame in self.transmitting:
                         frame.corrupted = True
+                    if DEBUG:
+                        print 'Corruption has occured.'
+
+                if DEBUG:
+                    print 'Host {0} has begun to transmit {1}'.format(event.host_id, frame)
 
             if (event_type == TransmissionCompletion):
                 host = self.hosts[event.host_id]
@@ -287,14 +304,15 @@ class Network(object):
                 if ((frame_type == AckFrame) and (not frame.corrupted)):
                     # Acknowledge successful reciept of data frame
                     # receiving host (which originally sent data) is not waiting
-                    if DEBUG:
-                        print 'Data frame successfully acknowledged'
 
                     host = self.hosts[frame.dest_host_id]
                     host.acknowledge(event.frame.data_frame)
                     host.reset_backoff()
 
                     self.events.put(TransmissionAttempt(self.time, host.host_id))
+
+                if DEBUG:
+                    print 'Transmission of {0} has completed. It was{1} corrupted.'.format(frame, '' if frame.corrupted else ' not')
 
             if (event_type == TransmissionTimeout):
                 host = self.hosts[event.host_id]
@@ -303,9 +321,11 @@ class Network(object):
                 if frame in host.sent_frames:
                     host.resend_frame(frame)
                     host.start_backoff()
-                    print 'timeout at host {0}, unsuccessful attempts: {1}'.format(host.host_id, host.unsuccessful_attempts)
+
+                    if DEBUG:
+                        print '{0} from host {1} timed out.'.format(frame, host.host_id)
 
 
 
-network = Network(10, 0.3, 0.5)
+network = Network(2, 0.1, 0.5)
 network.simulate(100000)
