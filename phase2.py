@@ -174,13 +174,6 @@ class Host(object):
     def decrement_backoff(self, backoff_dec):
         if self.backoff > 0 and self.is_backing_off:
             self.backoff -= backoff_dec
-        elif self.backoff == 0:
-            # TODO send another transmission
-            pass
-        elif self.backoff < 0:
-            if DEBUG:
-                print 'ERROR: backoff for host {host_id} is {backoff}'.format(
-                        host_id=self.host_id,backoff=self.backoff)
 
     def get_backoff(self):
         if self.is_backing_off:
@@ -245,9 +238,6 @@ class Network(object):
                             if DEBUG:    
                                 print 'Host {0} has reached maximum unsuccessful attempts. Dropping frame.'.format(host.host_id)
 
-
-
-
             if rewind_time_backoff:
                 self.time += min_backoff
                 self.events.put(event)
@@ -295,8 +285,7 @@ class Network(object):
                 # We dont't care what's happening, start transmitting
                 frame = self.hosts[event.host_id].dequeue_frame()
                 if frame in self.transmitting:
-                    raise Exception('should not occur')
-                    pass
+                    raise Exception('Frame sent to network twice')
 
                 transmission_time = frame.transmission_time
 
