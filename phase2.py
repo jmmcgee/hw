@@ -19,7 +19,9 @@ SIFS = 0.00005
 DIFS = 0.0001
 
 BACKOFF_T = 0.001
-TIMEOUT_T = 0.05
+TIMEOUT_T = 0.01
+
+BACKOFF_ATTEMPT_LIMIT = 10
 
 
 
@@ -76,8 +78,9 @@ class TransmissionTimeout(Event):
 
 
 class Frame(object):
-    def __init__(self, transmission_time, source_host_id, dest_host_id):
+    def __init__(self, transmission_time, bytes, source_host_id, dest_host_id):
         self.transmission_time = transmission_time
+        self.bytes = bytes
         self.source_host_id = source_host_id
         self.dest_host_id = dest_host_id
         self.corrupted = False
@@ -86,16 +89,25 @@ class Frame(object):
 
 class DataFrame(Frame):
     def __init__(self, PARAM_MU, source_host_id, dest_host_id):
-        transmission_time = DATA_FRAME_MAX_TRANSMISSION * NEG_EXP(PARAM_MU)
-        super(DataFrame, self).__init__(transmission_time, source_host_id, dest_host_id)
+        r = NEG_EXP(PARAM_MU)
+        r = 1.0 if r > 1.0 else r
+        transmission_time = DATA_FRAME_MAX_TRANSMISSION * r
+        bytes = math.floor((1544 * r) + 1)
+        super(DataFrame, self).__init__(transmission_time, bytes, source_host_id, dest_host_id)
+
+    def __repr__(self):
+        return '<DataFrame {0} ({1} to {2})>'.format(id(self), self.source_host_id, self.dest_host_id)
 
 
 
 class AckFrame(Frame):
     def __init__(self, source_host_id, dest_host_id, data_frame):
         transmission_time = ACK_FRAME_TRANSMISSION
-        super(AckFrame, self).__init__(transmission_time, source_host_id, dest_host_id)
+        super(AckFrame, self).__init__(transmission_time, 64, source_host_id, dest_host_id)
         self.data_frame = data_frame
+
+    def __repr__(self):
+        return '<AckFrame {0} ({1} to {2}, acknowledges {3})>'.format(id(self), self.source_host_id, self.dest_host_id, self.data_frame)
 
 
 
@@ -147,7 +159,7 @@ class Host(object):
     def start_backoff(self):
         self.is_backing_off = True
         self.unsuccessful_attempts += 1
-        self.backoff = math.floor(random.random() * self.unsuccessful_attempts * BACKOFF_T)
+        self.backoff = random.random() * self.unsuccessful_attempts * BACKOFF_T
 
     def stop_backoff(self):
         self.is_backing_off = False
@@ -175,6 +187,7 @@ class Host(object):
             return None
 
 
+
 class Network(object):
     def __init__(self, N, PARAM_LAMBDA, PARAM_MU):
         self.N = N
@@ -184,11 +197,15 @@ class Network(object):
         self.time = 0.0
         self.transmitting = []
 
-        self.hosts = dict((i, Host(i, self, self.PARAM_MU)) for i in xrange(N))
+        self.hosts = dict((i, Host(i, self, self.PARAM_LAMBDA)) for i in xrange(N))
         self.events = Queue.PriorityQueue(maxsize=0)
 
         for i, host in self.hosts.iteritems():
             self.events.put(host.create_arrival_event(0.0))
+
+        self.statistics = {
+            'bytes_sent': 0,
+        }
 
     def simulate(self, limit):
         event_n = 0
@@ -210,10 +227,21 @@ class Network(object):
                 for host in backing_off_hosts:
                     host.decrement_backoff(min_backoff)
                     if (host.get_backoff() == 0.0) and (host.is_backing_off):
-                        host.stop_backoff()
                         rewind_time_backoff = True
 
-                        self.events.put(TransmissionStart(self.time + min_backoff, host.host_id))
+                        if (host.unsuccessful_attempts < BACKOFF_ATTEMPT_LIMIT):
+                            host.stop_backoff()
+                            self.events.put(TransmissionStart(self.time + min_backoff, host.host_id))
+                        else:
+                            host.reset_backoff()
+                            dropped_frame = host.dequeue_frame()
+                            host.sent_frames.remove(dropped_frame)
+                            self.events.put(TransmissionAttempt(self.time + min_backoff, host.host_id))
+
+                            print 'Host {0} has reached maximum unsuccessful attempts. Dropping frame.'.format(host.host_id)
+
+
+
 
             if rewind_time_backoff:
                 self.time += min_backoff
@@ -272,6 +300,7 @@ class Network(object):
                 self.transmitting.append(frame)
 
                 if (type(frame) == DataFrame):
+                    print 'timeout placed at time {0}'.format(self.time + TIMEOUT_T)
                     self.events.put(TransmissionTimeout(self.time + TIMEOUT_T, event.host_id, frame))
 
                 if (len(self.transmitting) > 1):
@@ -282,6 +311,12 @@ class Network(object):
 
                 if DEBUG:
                     print 'Host {0} has begun to transmit {1} from host {2} to host {3}'.format(event.host_id, frame, frame.source_host_id, frame.dest_host_id)
+                    
+                    if (type(frame) == AckFrame):
+                        print 'Host {0} has unacknowledged frames {1}.'.format(frame.dest_host_id, self.hosts[frame.dest_host_id].sent_frames)
+                        print 'Host {0} has frame_queue {1}.'.format(frame.dest_host_id, self.hosts[frame.dest_host_id].frame_queue.queue)
+                        print 'Host {0} has resend_queue {1}.'.format(frame.dest_host_id, self.hosts[frame.dest_host_id].resend_queue.queue)
+
 
             if (event_type == TransmissionCompletion):
                 host = self.hosts[event.host_id]
@@ -313,6 +348,8 @@ class Network(object):
 
                     self.events.put(TransmissionAttempt(self.time, host.host_id))
 
+                    self.statistics['bytes_sent'] += event.frame.data_frame.bytes
+
                 if DEBUG:
                     print 'Transmission of {0} has completed. It was{1} corrupted.'.format(frame, '' if frame.corrupted else ' not')
 
@@ -325,13 +362,16 @@ class Network(object):
                     host.start_backoff()
 
                     if DEBUG:
+                        print '{0} from host {1} timed out at {2}s.'.format(frame, host.host_id, self.time)
                         print 'Host {0} has entered backoff with {1} unsuccessful attempts.'.format(host.host_id, host.unsuccessful_attempts)
-
-                    if DEBUG:
-                        print '{0} from host {1} timed out.'.format(frame, host.host_id)
-
+                        print 'Host {0} has backoff of {1}'.format(host.host_id, host.get_backoff())
 
             print
 
-network = Network(10, 0.9, 0.5)
-network.simulate(100000)
+
+
+if __name__ == '__main__':
+    network = Network(10, 0.9, 0.5)
+    network.simulate(5000)
+
+    print 'Avg. Throughput: {0}bps'.format((network.statistics['bytes_sent'] * 8) / network.time)
