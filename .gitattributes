@@ -1,1 +1,6 @@
+* auto
+
 *.pdf binary
+
+*.python text
+*.docx diff=pandoc
