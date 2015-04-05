@@ -44,10 +44,9 @@ void getUserInput(char* buf)
   CharType c_Type;
   size_t input_count = 0;
 
-  int escFlag = 0;
   bool exitFlag = false;
 
-  auto getChar = [&]()->bool { 
+  auto getChar = [&]()->bool {
     int ret = read(STDIN_FILENO, &c, 1);
     switch(ret) {
       case 0:
@@ -108,7 +107,7 @@ void getUserInput(char* buf)
 
           case '3':
             if(!getChar()) break; // read in 4th char
-            
+
             // parse 4th char (ESC [ 3)
             switch(c) {
               case '~':
@@ -130,12 +129,18 @@ void getUserInput(char* buf)
     }
 
     switch(c_Type) {
+      case CharType::NEWLINE:
+        buf[input_count] = '\0';
+        return;
+        break;
+
       case CharType::REGULAR:
         buf[input_count] = c;
         ++input_count;
         write(STDOUT_FILENO, &c, 1);
         break;
 
+      case CharType::DELETE:
       case CharType::BACKSPACE:
         if(input_count) {
           --input_count;
@@ -143,13 +148,19 @@ void getUserInput(char* buf)
         }
         break;
 
-      case CharType::DELETE:
-        
+      case CharType::CURSOR_UP:
+        break;
+
+      case CharType::CURSOR_DOWN:
+        break;
+
+      case CharType::CURSOR_LEFT:
+        break;
+
+      case CharType::CURSOR_RIGHT:
         break;
 
       default:
-        buf[input_count] = '\0';
-        return;
         break;
     }
   }
