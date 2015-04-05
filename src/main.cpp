@@ -6,16 +6,20 @@
 
 #include "noncanmode.h"
 
+enum class CharType {REGULAR, NEWLINE, BACKSPACE, ESCAPE};
+
 using namespace std;
 
 void displayPrompt();
-void getUserInput();
+void getUserInput(char* buf);
 
 int main(int argc, char *argv[])
 {
+  char* userInput = new char[1024];
+
   SetNonCanonicalMode(STDIN_FILENO, new termios);
   displayPrompt();
-  getUserInput();
+  getUserInput(userInput);
 }
 
 void displayPrompt()
@@ -33,25 +37,58 @@ void displayPrompt()
   write(STDOUT_FILENO, "> ", 2);
 }
 
-void getUserInput()
+void getUserInput(char* buf)
 {
   char c;
+  CharType c_Type;
   size_t input_count = 0;
 
-  // TODO: implement delete (escape-[-3-~)
+  while(true) {
+    if(read(STDIN_FILENO, &c, 1) == -1) {
+      return;
+    }
 
-  while((read(STDIN_FILENO, &c, 1) != -1) && (c != '\n')) {
     switch(c) {
+      case '\n':
+        c_Type = CharType::NEWLINE;
+        break;
+
       case '\b':
       case 0x7F:
+        c_Type = CharType::BACKSPACE;
+        break;
+
+      case 0x1B:
+        c_Type = CharType::ESCAPE;
+        break;
+
+      default:
+        c_Type = CharType::REGULAR;
+        break;
+    }
+
+    switch(c_Type) {
+      case CharType::REGULAR:
+        buf[input_count] = c;
+        ++input_count;
+        write(STDOUT_FILENO, &c, 1);
+        break;
+
+      case CharType::BACKSPACE:
         if(input_count) {
           --input_count;
           write(STDOUT_FILENO, "\b \b", 3);
         }
         break;
+
+      case CharType::ESCAPE:
+        // TODO: implement escape sequences like delete (escape [ 3 ~)
+        break;
+
       default:
-        ++input_count;
-        write(STDOUT_FILENO, &c, 1);
+        buf[input_count] = '\0';
+        return;
+        break;
     }
   }
 }
