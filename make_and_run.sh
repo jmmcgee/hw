@@ -1,3 +1,5 @@
+#!/bin/bash
+
 NJOBS=4
 if [ "$1" != "" ] ; then
     NJOBS=$1

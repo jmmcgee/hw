@@ -43,6 +43,7 @@ void getUserInput()
   while((read(STDIN_FILENO, &c, 1) != -1) && (c != '\n')) {
     switch(c) {
       case '\b':
+      case 0x7F:
         if(input_count) {
           --input_count;
           write(STDOUT_FILENO, "\b \b", 3);
