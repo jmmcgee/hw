@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <string.h>
 #include <string>
 #include <iostream>
 
@@ -11,16 +12,114 @@ enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
 
 using namespace std;
 
+class History {
+  private:
+    string* history;
+    size_t size;
+    size_t entries;
+    size_t head;
+    size_t tail;
+    size_t cursor;
+
+  public:
+    History(unsigned int m_size);
+    ~History();
+
+    void addEntry(char* buf);
+
+    void show();
+
+    void resetCursor();
+    string getPrevHistory();
+    string getNextHistory();
+};
+
+History::History(unsigned int m_size):
+  history(new string[m_size]),
+  size(m_size),
+  entries(0),
+  head(0),
+  tail(0),
+  cursor(0)
+{
+}
+
+History::~History()
+{
+  delete[] history;
+}
+
+void History::addEntry(char* buf)
+{
+  if (entries < size) {
+    history[tail] = string(buf);
+    ++tail;
+    ++entries;
+  } else {
+    head = (head + 1) % size;
+    tail = (size + head - 1) % size;
+    history[tail] = string(buf);
+  }
+}
+
+void History::show() {
+  string entry;
+  string numbering;
+
+  for (size_t i = 0; i < entries; ++i) {
+    entry = history[(head + i) % size];
+    numbering = to_string(i) + " ";
+    write(STDOUT_FILENO, numbering.data(), numbering.size());
+    write(STDOUT_FILENO, entry.data(), entry.size());
+    write(STDOUT_FILENO, "\n", 1);
+  }
+}
+
+void History::resetCursor() {
+  cursor = entries;
+}
+
+string History::getPrevHistory() {
+  if(cursor)
+    return history[(head + --cursor) % size];
+
+  return "";
+}
+
+string History::getNextHistory() {
+  if(cursor < entries)
+    if(++cursor < entries)
+      return history[(head + cursor) % size];
+
+  return "";
+
+}
+
+void inputLoop();
 void displayPrompt();
-void getUserInput(char* buf);
+void getUserInput(char* buf, History* hist);
 
 int main(int argc, char *argv[])
 {
-  char* userInput = new char[1024];
+  struct termios SavedTermAttributes;
 
-  SetNonCanonicalMode(STDIN_FILENO, new termios);
-  displayPrompt();
-  getUserInput(userInput);
+  SetNonCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
+
+  inputLoop();
+}
+
+void inputLoop()
+{
+  char userInput[1024];
+  History history = History(10);
+
+  while(true) {
+    displayPrompt();
+    getUserInput(userInput, &history);
+
+    if(*userInput) history.addEntry(userInput);
+
+  }
 }
 
 void displayPrompt()
@@ -38,7 +137,7 @@ void displayPrompt()
   write(STDOUT_FILENO, "> ", 2);
 }
 
-void getUserInput(char* buf)
+void getUserInput(char* buf, History* hist)
 {
   char c;
   CharType c_Type;
@@ -64,6 +163,10 @@ void getUserInput(char* buf)
         break;
     }
   };
+
+  string hist_input;
+
+  hist->resetCursor();
 
   while(!exitFlag) {
     if(!getChar())
@@ -131,6 +234,7 @@ void getUserInput(char* buf)
     switch(c_Type) {
       case CharType::NEWLINE:
         buf[input_count] = '\0';
+        write(STDOUT_FILENO, "\n", 1);
         return;
         break;
 
@@ -145,13 +249,42 @@ void getUserInput(char* buf)
         if(input_count) {
           --input_count;
           write(STDOUT_FILENO, "\b \b", 3);
+        } else {
+          write(STDOUT_FILENO, "\a", 1);
         }
         break;
 
       case CharType::CURSOR_UP:
+        if((hist_input = hist->getPrevHistory()).size()) {
+          for (size_t i = input_count; i; --i) {
+            write(STDOUT_FILENO, "\b \b", 3);
+          }
+          write(STDOUT_FILENO, hist_input.data(), hist_input.size());
+
+          strcpy(buf, hist_input.data());
+          input_count = hist_input.size();
+        } else {
+          write(STDOUT_FILENO, "\a", 1);
+        }
         break;
 
       case CharType::CURSOR_DOWN:
+        if((hist_input = hist->getNextHistory()).size()) {
+          for (size_t i = input_count; i; --i) {
+            write(STDOUT_FILENO, "\b \b", 3);
+          }
+          write(STDOUT_FILENO, hist_input.data(), hist_input.size());
+
+          strcpy(buf, hist_input.data());
+          input_count = hist_input.size();
+        } else {
+          for (size_t i = input_count; i; --i) {
+            write(STDOUT_FILENO, "\b \b", 3);
+          }
+
+          buf[0] = '\0';
+          input_count = 0;
+        }
         break;
 
       case CharType::CURSOR_LEFT:
