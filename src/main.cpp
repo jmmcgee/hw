@@ -6,7 +6,8 @@
 
 #include "noncanmode.h"
 
-enum class CharType {REGULAR, NEWLINE, BACKSPACE, ESCAPE};
+enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
+    CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, DELETE };
 
 using namespace std;
 
@@ -43,10 +44,31 @@ void getUserInput(char* buf)
   CharType c_Type;
   size_t input_count = 0;
 
-  while(true) {
-    if(read(STDIN_FILENO, &c, 1) == -1) {
-      return;
+  int escFlag = 0;
+  bool exitFlag = false;
+
+  auto getChar = [&]()->bool { 
+    int ret = read(STDIN_FILENO, &c, 1);
+    switch(ret) {
+      case 0:
+        return false;
+        break;
+
+      case 1:
+        return true;
+        break;
+
+      case -1:
+      default:
+        exitFlag = true;
+        return false;
+        break;
     }
+  };
+
+  while(!exitFlag) {
+    if(!getChar())
+      continue;
 
     switch(c) {
       case '\n':
@@ -60,6 +82,46 @@ void getUserInput(char* buf)
 
       case 0x1B:
         c_Type = CharType::ESCAPE;
+
+        // read rest of esc sequence
+        if(!getChar()) break; // read in 2nd char
+        if(c != '[') break; // 2nd char must be '['
+        if(!getChar()) break; // read in 3rd char
+
+        // Parse 3rd char
+        switch(c) {
+          case 'A':
+            c_Type = CharType::CURSOR_UP;
+            break;
+
+          case 'B':
+            c_Type = CharType::CURSOR_DOWN;
+            break;
+
+          case 'C':
+            c_Type = CharType::CURSOR_LEFT;
+            break;
+
+          case 'D':
+            c_Type = CharType::CURSOR_RIGHT;
+            break;
+
+          case '3':
+            if(!getChar()) break; // read in 4th char
+            
+            // parse 4th char (ESC [ 3)
+            switch(c) {
+              case '~':
+                c_Type = CharType::DELETE;
+                break;
+
+              default:
+                break;
+            } // 4th char (ESC [ 3)
+
+          default:
+            break;
+        }
         break;
 
       default:
@@ -81,8 +143,8 @@ void getUserInput(char* buf)
         }
         break;
 
-      case CharType::ESCAPE:
-        // TODO: implement escape sequences like delete (escape [ 3 ~)
+      case CharType::DELETE:
+        
         break;
 
       default:
