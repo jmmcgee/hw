@@ -1,5 +1,5 @@
-#ifndef NONCANMOD_H
-#define NONCANMOD_H
+#ifndef NONCANMODE_H
+#define NONCANMODE_H
 
 #include <termios.h>
 

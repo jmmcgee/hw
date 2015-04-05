@@ -1,8 +1,10 @@
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <string>
+#include <iostream>
+
+#include "noncanmode.h"
 
 using namespace std;
 
@@ -10,9 +12,8 @@ void displayPrompt();
 
 int main(int argc, char *argv[])
 {
+  SetNonCanonicalMode(STDIN_FILENO, new termios);
   displayPrompt();
-
-  system("echo Hello World!!");
 }
 
 void displayPrompt()
