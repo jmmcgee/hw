@@ -98,6 +98,7 @@ string History::getNextHistory() {
 void inputLoop();
 void displayPrompt();
 void getUserInput(char* buf, History* hist);
+void processUserInput(char* buf);
 
 int main(int argc, char *argv[])
 {
@@ -119,6 +120,7 @@ void inputLoop()
 
     if(*userInput) history.addEntry(userInput);
 
+    processUserInput(userInput);
   }
 }
 
@@ -297,4 +299,9 @@ void getUserInput(char* buf, History* hist)
         break;
     }
   }
+}
+
+void processUserInput(char* buf) {
+  cout << "===== You entered this following: =====" << endl;
+  cout << buf << endl;
 }
