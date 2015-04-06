@@ -14,10 +14,10 @@ using namespace std;
 enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
     CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, DELETE };
 
-
 void displayPrompt();
 string getUserInput(History& hist);
-void parseUserInput(string input);
+vector<string> tokenizeInput(string input, string delims);
+void evaluateCommands(string input);
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
       continue;
 
     history.addEntry(userInput);
-    parseUserInput(userInput);
+    evaluateCommands(userInput);
   }
   ResetCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
 
@@ -214,19 +214,19 @@ string getUserInput(History& hist)
   return "";
 }
 
-void parseUserInput(string input) {
+void evaluateCommands(string input) {
+  // Split input string into commands
+  // Assume multiple commands must be piped and delimited by '|'
+  vector<string> pipedCommands = tokenizeInput(input, "|");
 
+  
 }
 
-void tokenizeCommand(string input) {
-  cout << "===== You entered the following: =====" << endl;
-  cout << input << endl;
-
+vector<string> tokenizeInput(string input, string delims) {
   // First tokenize input
   vector<string> tokens;
 
   size_t pos = 0;
-  const string delims = " \t";
   while(pos < input.size()) {
     size_t tokenStart = input.find_first_not_of(delims, pos);
     size_t tokenEnd = input.find_first_of(delims, tokenStart);
@@ -240,7 +240,5 @@ void tokenizeCommand(string input) {
     pos = tokenEnd;
   }
 
-  cout << "----- This was interpreted as: -----" << endl;
-  for(string token : tokens)
-    cout << token << endl;
+  return tokens;
 }
