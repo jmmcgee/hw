@@ -6,25 +6,27 @@
 
 using namespace std;
 
-Command::Command()
+Command::Command(const vector<string> args, const map<int, string> fdPaths) :
+  _args(args),
+  _fdPaths(fdPaths)
 {
 }
 
-Command::Command(string args)
+
+void Command::setArg(size_t argNo, const string arg)
 {
+  if(_args.size() < argNo)
+    _args[argNo] = arg;
 }
 
-
-void Command::setArg(size_t argNo, string arg)
+void Command::addArg(const string arg)
 {
+  _args.push_back(arg);
 }
 
-void Command::addArg(string arg)
+void Command::redirect(size_t fd, const string path)
 {
-}
-
-void Command::redirect(size_t fd, string path)
-{
+  _fdPaths.insert({fd, path});
 }
 
 void Command::execute()

@@ -8,16 +8,16 @@
 class Command
 {
   private:
-    std::vector<std::string> args;
-    std::map<int, std::string> fdPaths;
+    std::vector<std::string> _args;
+    std::map<int, std::string> _fdPaths;
 
   public:
-    Command();
-    Command(std::string args);
+    Command(const std::vector<std::string> args = {},
+        const std::map<int, std::string> = {});
 
-    void setArg(size_t argNo, std::string arg);
-    void addArg(std::string arg);
-    void redirect(size_t fd, std::string path);
+    void setArg(size_t argNo, const std::string arg);
+    void addArg(const std::string arg);
+    void redirect(size_t fd, const std::string path);
     void execute();
 };
 #endif
