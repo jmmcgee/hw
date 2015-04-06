@@ -17,7 +17,7 @@ Command::Command(const vector<string> args, const map<int, string> fdPaths) :
 
 void Command::setArg(size_t argNo, const string arg)
 {
-  if(_args.size() < argNo)
+  if(_args.size() > argNo)
     _args[argNo] = arg;
 }
 
