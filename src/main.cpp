@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "history.hpp"
-#include "noncanmode.h"
+#include "noncanmode.hpp"
 
 using namespace std;
 
