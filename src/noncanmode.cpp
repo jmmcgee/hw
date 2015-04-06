@@ -1,4 +1,4 @@
-#include "noncanmode.h"
+#include "noncanmode.hpp"
 
 #include <unistd.h>
 #include <stdio.h>
