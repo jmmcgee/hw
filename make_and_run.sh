@@ -5,6 +5,7 @@ if [ "$1" != "" ] ; then
     NJOBS=$1
 fi
 
+rm ashell
 mkdir -p build && cd build
 cmake .. \
     && make -j $NJOBS \
