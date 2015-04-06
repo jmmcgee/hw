@@ -21,16 +21,16 @@ History::~History()
   delete[] history;
 }
 
-void History::addEntry(char* buf)
+void History::addEntry(string buf)
 {
   if (entries < size) {
-    history[tail] = string(buf);
+    history[tail] = buf;
     ++tail;
     ++entries;
   } else {
     head = (head + 1) % size;
     tail = (size + head - 1) % size;
-    history[tail] = string(buf);
+    history[tail] = buf;
   }
 }
 

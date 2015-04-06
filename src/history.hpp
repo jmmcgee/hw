@@ -16,7 +16,7 @@ class History {
     History(unsigned int m_size);
     ~History();
 
-    void addEntry(char* buf);
+    void addEntry(std::string buf);
 
     void show();
 

@@ -16,8 +16,8 @@ enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
 
 void inputLoop();
 void displayPrompt();
-void getUserInput(char* buf, History* hist);
-void processUserInput(char* buf);
+string getUserInput(History& hist);
+void parseUserInput(string input);
 
 int main(int argc, char *argv[])
 {
@@ -30,16 +30,17 @@ int main(int argc, char *argv[])
 
 void inputLoop()
 {
-  char userInput[1024];
+  string userInput;
   History history = History(10);
 
   while(true) {
     displayPrompt();
-    getUserInput(userInput, &history);
+    userInput = getUserInput(history);
 
-    if(*userInput) history.addEntry(userInput);
+    if(userInput.size() > 0)
+      history.addEntry(userInput);
 
-    processUserInput(userInput);
+    parseUserInput(userInput);
   }
 }
 
@@ -58,12 +59,12 @@ void displayPrompt()
   write(STDOUT_FILENO, "> ", 2);
 }
 
-void getUserInput(char* buf, History* hist)
+string getUserInput(History& hist)
 {
+  string buf;
   char c;
-  CharType c_Type;
-  size_t input_count = 0;
 
+  CharType c_Type;
   bool exitFlag = false;
 
   auto getChar = [&]()->bool {
@@ -87,7 +88,7 @@ void getUserInput(char* buf, History* hist)
 
   string hist_input;
 
-  hist->resetCursor();
+  hist.resetCursor();
 
   while(!exitFlag) {
     if(!getChar())
@@ -154,21 +155,19 @@ void getUserInput(char* buf, History* hist)
 
     switch(c_Type) {
       case CharType::NEWLINE:
-        buf[input_count] = '\0';
         write(STDOUT_FILENO, "\n", 1);
-        return;
+        return buf;
         break;
 
       case CharType::REGULAR:
-        buf[input_count] = c;
-        ++input_count;
+        buf.push_back(c);
         write(STDOUT_FILENO, &c, 1);
         break;
 
       case CharType::DELETE:
       case CharType::BACKSPACE:
-        if(input_count) {
-          --input_count;
+        if(buf.size() > 0) {
+          buf.resize(buf.size()-1);
           write(STDOUT_FILENO, "\b \b", 3);
         } else {
           write(STDOUT_FILENO, "\a", 1);
@@ -176,35 +175,31 @@ void getUserInput(char* buf, History* hist)
         break;
 
       case CharType::CURSOR_UP:
-        if((hist_input = hist->getPrevHistory()).size()) {
-          for (size_t i = input_count; i; --i) {
+        if((hist_input = hist.getPrevHistory()).size()) {
+          for (size_t i = buf.size(); i; --i) {
             write(STDOUT_FILENO, "\b \b", 3);
           }
-          write(STDOUT_FILENO, hist_input.data(), hist_input.size());
-
-          strcpy(buf, hist_input.data());
-          input_count = hist_input.size();
+          buf = hist_input;
+          write(STDOUT_FILENO, buf.data(), buf.size());
         } else {
           write(STDOUT_FILENO, "\a", 1);
         }
         break;
 
       case CharType::CURSOR_DOWN:
-        if((hist_input = hist->getNextHistory()).size()) {
-          for (size_t i = input_count; i; --i) {
+        if((hist_input = hist.getNextHistory()).size()) {
+          for (size_t i = buf.size(); i; --i) {
             write(STDOUT_FILENO, "\b \b", 3);
           }
-          write(STDOUT_FILENO, hist_input.data(), hist_input.size());
-
-          strcpy(buf, hist_input.data());
-          input_count = hist_input.size();
+          buf = hist_input;
+          write(STDOUT_FILENO, buf.data(), buf.size());
         } else {
-          for (size_t i = input_count; i; --i) {
+          for (size_t i = buf.size(); i; --i) {
             write(STDOUT_FILENO, "\b \b", 3);
           }
 
           buf[0] = '\0';
-          input_count = 0;
+          buf.clear();
         }
         break;
 
@@ -218,9 +213,10 @@ void getUserInput(char* buf, History* hist)
         break;
     }
   }
+  return "";
 }
 
-void processUserInput(char* buf) {
+void parseUserInput(string input) {
   cout << "===== You entered this following: =====" << endl;
-  cout << buf << endl;
+  cout << input << endl;
 }
