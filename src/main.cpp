@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "command.hpp"
 #include "history.hpp"
 #include "noncanmode.hpp"
 
@@ -214,6 +215,28 @@ string getUserInput(History& hist)
 }
 
 void parseUserInput(string input) {
-  cout << "===== You entered this following: =====" << endl;
+  cout << "===== You entered the following: =====" << endl;
   cout << input << endl;
+
+  // First tokenize input
+  vector<string> tokens;
+
+  size_t pos = 0;
+  const string delims = " \t";
+  while(pos < input.size()) {
+    size_t tokenStart = input.find_first_not_of(delims, pos);
+    size_t tokenEnd = input.find_first_of(delims, tokenStart);
+
+    // ensure in bounds
+    if(tokenStart >= input.size())
+      break;
+
+    string token = input.substr(tokenStart, tokenEnd - tokenStart);
+    tokens.push_back(token);
+    pos = tokenEnd;
+  }
+
+  cout << "----- This was interpreted as: -----" << endl;
+  for(string token : tokens)
+    cout << token << endl;
 }
