@@ -14,7 +14,6 @@ enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
     CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, DELETE };
 
 
-void inputLoop();
 void displayPrompt();
 string getUserInput(History& hist);
 void parseUserInput(string input);
@@ -22,26 +21,24 @@ void parseUserInput(string input);
 int main(int argc, char *argv[])
 {
   struct termios SavedTermAttributes;
-
-  SetNonCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
-
-  inputLoop();
-}
-
-void inputLoop()
-{
   string userInput;
   History history = History(10);
 
+
+
+  SetNonCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
   while(true) {
     displayPrompt();
     userInput = getUserInput(history);
 
-    if(userInput.size() > 0)
-      history.addEntry(userInput);
+    if(userInput.size() == 0)
+      continue;
 
+    history.addEntry(userInput);
     parseUserInput(userInput);
   }
+  ResetCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
+
 }
 
 void displayPrompt()
