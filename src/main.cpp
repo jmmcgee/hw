@@ -214,6 +214,10 @@ string getUserInput(History& hist)
   return "";
 }
 
+void parseUserInput(string input) {
+
+}
+
 void tokenizeCommand(string input) {
   cout << "===== You entered the following: =====" << endl;
   cout << input << endl;
