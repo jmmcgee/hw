@@ -1,5 +1,7 @@
 #include "command.hpp"
 
+#include <unistd.h>
+
 #include <map>
 #include <string>
 #include <vector>
@@ -29,6 +31,22 @@ void Command::redirect(size_t fd, const string path)
   _fdPaths.insert({fd, path});
 }
 
-void Command::execute()
+int Command::execute()
 {
+  // fork and only run if child
+  pid_t pid = fork();
+  if(pid != 0)
+    return pid;
+
+  vector<const char*> cArgs;
+
+  for(const string& arg : _args)
+    cArgs.push_back(arg.data());
+  cArgs.push_back(nullptr);
+
+  // forced cast. not dealing with this shit.
+  execvp(cArgs[0], (char*const*)&cArgs[1]);
+
+  // should never happen
+  return -1;
 }

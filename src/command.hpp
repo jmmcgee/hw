@@ -18,6 +18,6 @@ class Command
     void setArg(size_t argNo, const std::string arg);
     void addArg(const std::string arg);
     void redirect(size_t fd, const std::string path);
-    void execute();
+    int execute();
 };
 #endif
