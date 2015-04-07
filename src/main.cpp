@@ -1,5 +1,9 @@
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #include <iostream>
 #include <string>
@@ -17,6 +21,7 @@ enum class CharType { REGULAR, NEWLINE, BACKSPACE, ESCAPE, CURSOR_UP,
 void displayPrompt();
 string getUserInput(History& hist);
 vector<string> tokenizeInput(string input, string delims);
+string extractToken(string& input, char delim);
 void evaluateCommands(string input);
 
 int main(int argc, char *argv[])
@@ -215,11 +220,90 @@ string getUserInput(History& hist)
 }
 
 void evaluateCommands(string input) {
+  vector<Command> commands;
+
+  vector<int*> pipes;
+  vector<int> fileFDs;
+
   // Split input string into commands
   // Assume multiple commands must be piped and delimited by '|'
   vector<string> pipedCommands = tokenizeInput(input, "|");
 
-  
+  // Set up piped file descriptors and open files between possibly multiple
+  // commands
+  size_t n_commands = pipedCommands.size();
+  if (!n_commands) return;
+
+  string commandStr = pipedCommands[0];
+  string inputFile = extractToken(commandStr, '<');
+  string outputFile = extractToken(commandStr, '>');
+
+  Command cmd = Command(tokenizeInput(commandStr, " "));
+
+  int fd;
+  if(inputFile.size()) {
+    fd = open(inputFile.c_str(), O_RDONLY);
+    cmd.setInputFile(fd);
+    fileFDs.push_back(fd);
+  }
+  if(outputFile.size()) {
+    fd = open(outputFile.c_str(), O_WRONLY|O_CREAT, 0664);
+    cmd.setOutputFile(fd);
+    fileFDs.push_back(fd);
+  }
+
+  commands.push_back(cmd);
+
+  for(size_t i = 1; i < n_commands; ++i) {
+    commandStr = pipedCommands[i];
+    inputFile = extractToken(commandStr, '<');
+    outputFile = extractToken(commandStr, '>');
+
+    cmd = Command(tokenizeInput(commandStr, " "));
+
+    if(inputFile.size()) {
+      fd = open(inputFile.c_str(), O_RDONLY);
+      cmd.setInputFile(fd);
+      fileFDs.push_back(fd);
+    }
+    if(outputFile.size()) {
+      fd = open(outputFile.c_str(), O_WRONLY|O_CREAT, 0664);
+      cmd.setOutputFile(fd);
+      fileFDs.push_back(fd);
+    }
+
+    commands.push_back(cmd);
+
+    int* fdPair = new int[2];
+    pipe(fdPair);
+    pipes.push_back(fdPair);
+
+    commands[i].setInputPipe(fdPair);
+    commands[i - 1].setOutputPipe(fdPair);
+  }
+
+  int lastPid;
+  int status;
+
+  for(Command execcmd : commands) {
+    lastPid = execcmd.execute();
+    while(wait(&status) != lastPid);
+  }
+}
+
+string extractToken(string& input, char delim) {
+  size_t delimStart = input.find_first_of(delim);
+  if(delimStart == string::npos) return "";
+
+  size_t tokenStart = input.find_first_not_of(" ", delimStart + 1);
+  size_t tokenEnd = input.find_first_of(" ", tokenStart);
+  if(tokenEnd == string::npos) tokenEnd = input.size();
+
+  string token = input.substr(tokenStart, tokenEnd - tokenStart);
+
+  input.replace(tokenStart, tokenEnd - tokenStart, "");
+
+  return token;
 }
 
 vector<string> tokenizeInput(string input, string delims) {
