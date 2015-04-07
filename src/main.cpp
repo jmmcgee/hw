@@ -231,17 +231,17 @@ void evaluateCommands(string input) {
   size_t n_commands = pipedCommands.size();
   if (!n_commands) return;
 
-  size_t n_pipes = (n_commands - 1) * 2;
-  int pipes[n_pipes];
+  int tail_pipe[2];
+  int head_pipe[2];
   vector<int> fileFDs;
-
-  for(size_t i = 0; i < n_commands - 1; ++i) {
-    pipe(pipes + i * 2);
-  }
 
   pid_t lastPid;
 
   for(size_t cmd_i = 0; cmd_i < n_commands; ++cmd_i) {
+    if(cmd_i < n_commands - 1) {
+      pipe(head_pipe);
+    }
+
     if((lastPid = fork()) == -1) exit(1);
 
     if(!lastPid) {
@@ -261,43 +261,61 @@ void evaluateCommands(string input) {
       char* const* cmd_argv = (char* const*) argv;
 
       if(cmd_i) {
-        dup2(pipes[cmd_i * 2 - 2], STDIN_FILENO);
+        dup2(tail_pipe[0], STDIN_FILENO);
+        close(tail_pipe[0]);
+        close(tail_pipe[1]);
       }
 
       if(cmd_i < n_commands - 1) {
-        dup2(pipes[cmd_i * 2 + 1], STDOUT_FILENO);
+        close(head_pipe[0]);
+        dup2(head_pipe[1], STDOUT_FILENO);
+        close(head_pipe[1]);
       }
 
       int fileFD;
 
       if(inputFile.size()) {
-        if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) exit(1);
-        dup2(fileFD, STDIN_FILENO);
+        if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) {
+          string fileMissing = "File \"" + inputFile + "\" does not exist!\n";
+          write(STDOUT_FILENO, fileMissing.data(), fileMissing.size());
+          exit(1);
+        };
+        dup2(fileFD, STDERR_FILENO);
         close(fileFD);
       }
 
       if(outputFile.size()) {
-        if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) exit(1);
-        dup2(fileFD, STDOUT_FILENO);
+        if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) {
+          exit(1);
+        }
+        dup2(fileFD, STDERR_FILENO);
         close(fileFD);
       }
 
-      for(size_t pipe_i = 0; pipe_i < n_pipes; ++pipe_i) {
-        close(pipes[pipe_i]);
+      if (execvp(cmd_path, cmd_argv) == -1) {
+        string failedExec = "Failed to execute " + args[0] + "\n";
+        write(STDOUT_FILENO, failedExec.data(), failedExec.size());
+        exit(1);
+      }
+    } else {
+      if(cmd_i) {
+        close(tail_pipe[0]);
+        close(tail_pipe[1]);
       }
 
-      execvp(cmd_path, cmd_argv);
-    } else {
-
+      if(cmd_i < n_commands - 1) {
+        tail_pipe[0] = head_pipe[0];
+        tail_pipe[1] = head_pipe[1];
+      }
     }
   }
 
-  for(size_t pipe_i = 0; pipe_i < n_pipes; ++pipe_i) {
-    close(pipes[pipe_i]);
+  if(n_commands > 1) {
+    close(tail_pipe[0]);
+    close(tail_pipe[1]);
   }
 
   while(waitpid(-1, NULL, 0)) if(errno == ECHILD) break;
-
 }
 
 string extractToken(string& input, char delim) {
