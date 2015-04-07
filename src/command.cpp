@@ -64,10 +64,10 @@ int Command::execute()
   }
 
   if(inputFileFD) {
-    dup2(STDIN_FILENO, inputFileFD);
+    dup2(inputFileFD, STDIN_FILENO);
   } else if (inputPipeFDPair) {
     close(inputPipeFDPair[1]);
-    dup2(STDIN_FILENO, inputPipeFDPair[0]);
+    dup2(inputPipeFDPair[0], STDIN_FILENO);
   }
 
   if(outputFileFD) {
