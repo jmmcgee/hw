@@ -222,9 +222,6 @@ string getUserInput(History& hist)
 void evaluateCommands(string input) {
   vector<Command> commands;
 
-  vector<int*> pipes;
-  vector<int> fileFDs;
-
   // Split input string into commands
   // Assume multiple commands must be piped and delimited by '|'
   vector<string> pipedCommands = tokenizeInput(input, "|");
@@ -234,71 +231,73 @@ void evaluateCommands(string input) {
   size_t n_commands = pipedCommands.size();
   if (!n_commands) return;
 
-  string commandStr = pipedCommands[0];
-  string inputFile = extractToken(commandStr, '<');
-  string outputFile = extractToken(commandStr, '>');
+  size_t n_pipes = (n_commands - 1) * 2;
+  int pipes[n_pipes];
+  vector<int> fileFDs;
 
-  Command cmd = Command(tokenizeInput(commandStr, " "));
-
-  int fd;
-  if(inputFile.size()) {
-    fd = open(inputFile.c_str(), O_RDONLY);
-    cmd.setInputFile(fd);
-    fileFDs.push_back(fd);
-  }
-  if(outputFile.size()) {
-    fd = open(outputFile.c_str(), O_WRONLY|O_CREAT, 0664);
-    cmd.setOutputFile(fd);
-    fileFDs.push_back(fd);
+  for(size_t i = 0; i < n_commands - 1; ++i) {
+    pipe(pipes + i * 2);
   }
 
-  commands.push_back(cmd);
+  pid_t lastPid;
 
-  for(size_t i = 1; i < n_commands; ++i) {
-    commandStr = pipedCommands[i];
-    inputFile = extractToken(commandStr, '<');
-    outputFile = extractToken(commandStr, '>');
+  for(size_t cmd_i = 0; cmd_i < n_commands; ++cmd_i) {
+    if((lastPid = fork()) == -1) exit(1);
 
-    cmd = Command(tokenizeInput(commandStr, " "));
+    if(!lastPid) {
+      string cmd = pipedCommands[cmd_i];
+      string inputFile = extractToken(cmd, '<');
+      string outputFile = extractToken(cmd, '>');
+      vector<string> args = tokenizeInput(cmd, " ");
+      size_t n_args = args.size();
 
-    if(inputFile.size()) {
-      fd = open(inputFile.c_str(), O_RDONLY);
-      cmd.setInputFile(fd);
-      fileFDs.push_back(fd);
+      const char* argv[n_args + 1];
+      for(size_t arg_i = 0; arg_i < n_args; ++arg_i) {
+        argv[arg_i] = args[arg_i].c_str();
+      }
+      argv[n_args] = NULL;
+
+      const char* cmd_path = args[0].c_str();
+      char* const* cmd_argv = (char* const*) argv;
+
+      if(cmd_i) {
+        dup2(pipes[cmd_i * 2 - 2], STDIN_FILENO);
+      }
+
+      if(cmd_i < n_commands - 1) {
+        dup2(pipes[cmd_i * 2 + 1], STDOUT_FILENO);
+      }
+
+      int fileFD;
+
+      if(inputFile.size()) {
+        if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) exit(1);
+        dup2(fileFD, STDIN_FILENO);
+        close(fileFD);
+      }
+
+      if(outputFile.size()) {
+        if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) exit(1);
+        dup2(fileFD, STDOUT_FILENO);
+        close(fileFD);
+      }
+
+      for(size_t pipe_i = 0; pipe_i < n_pipes; ++pipe_i) {
+        close(pipes[pipe_i]);
+      }
+
+      execvp(cmd_path, cmd_argv);
+    } else {
+
     }
-    if(outputFile.size()) {
-      fd = open(outputFile.c_str(), O_WRONLY|O_CREAT, 0664);
-      cmd.setOutputFile(fd);
-      fileFDs.push_back(fd);
-    }
-
-    commands.push_back(cmd);
-
-    int* fdPair = new int[2];
-    pipe(fdPair);
-    pipes.push_back(fdPair);
-
-    commands[i].setInputPipe(fdPair);
-    commands[i - 1].setOutputPipe(fdPair);
   }
 
-  int lastPid;
-  int status;
-
-  for(Command cmd : commands) {
-    lastPid = cmd.execute();
-    while(wait(&status) != lastPid);
+  for(size_t pipe_i = 0; pipe_i < n_pipes; ++pipe_i) {
+    close(pipes[pipe_i]);
   }
 
-  for(int* fdPair : pipes) {
-    close(fdPair[0]);
-    close(fdPair[1]);
-    delete[] fdPair;
-  }
+  while(waitpid(-1, NULL, 0)) if(errno == ECHILD) break;
 
-  for(int fd : fileFDs) {
-    close(fd);
-  }
 }
 
 string extractToken(string& input, char delim) {
