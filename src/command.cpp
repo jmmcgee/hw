@@ -64,17 +64,17 @@ int Command::execute()
   }
 
   if(inputFileFD) {
-    dup2(0, inputFileFD);
+    dup2(STDIN_FILENO, inputFileFD);
   } else if (inputPipeFDPair) {
     close(inputPipeFDPair[1]);
-    dup2(0, inputPipeFDPair[0]);
+    dup2(STDIN_FILENO, inputPipeFDPair[0]);
   }
 
   if(outputFileFD) {
-    dup2(1, outputFileFD);
+    dup2(outputFileFD, STDOUT_FILENO);
   } else if (outputPipeFDPair) {
-    close(inputPipeFDPair[0]);
-    dup2(1, inputPipeFDPair[1]);
+    close(outputPipeFDPair[0]);
+    dup2(outputPipeFDPair[1], STDOUT_FILENO);
   }
 
   vector<const char*> cArgs;

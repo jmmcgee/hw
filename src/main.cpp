@@ -285,9 +285,19 @@ void evaluateCommands(string input) {
   int lastPid;
   int status;
 
-  for(Command execcmd : commands) {
-    lastPid = execcmd.execute();
+  for(Command cmd : commands) {
+    lastPid = cmd.execute();
     while(wait(&status) != lastPid);
+  }
+
+  for(int* fdPair : pipes) {
+    close(fdPair[0]);
+    close(fdPair[1]);
+    delete[] fdPair;
+  }
+
+  for(int fd : fileFDs) {
+    close(fd);
   }
 }
 
