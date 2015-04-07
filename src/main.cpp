@@ -301,7 +301,7 @@ string extractToken(string& input, char delim) {
 
   string token = input.substr(tokenStart, tokenEnd - tokenStart);
 
-  input.replace(tokenStart, tokenEnd - tokenStart, "");
+  input.replace(delimStart, tokenEnd - delimStart, "");
 
   return token;
 }
