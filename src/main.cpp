@@ -24,7 +24,7 @@ vector<string> tokenizeInput(string input, string delims);
 string extractToken(string& input, char delim);
 void evaluateCommands(string input, History& hist);
 
-void internal_cd();
+void internal_cd(const char* path);
 void internal_ls();
 void internal_pwd();
 void internal_history(History& hist);
@@ -299,7 +299,7 @@ void evaluateCommands(string input, History& hist) {
       }
 
       if(args[0] == "cd") {
-        internal_cd();
+        internal_cd(args[1].c_str());
       } else if(args[0] == "ls") {
         internal_ls();
       } else if(args[0] == "pwd") {
@@ -376,8 +376,12 @@ vector<string> tokenizeInput(string input, string delims) {
   return tokens;
 }
 
-void internal_cd() {
-  exit(0);
+void internal_cd(const char* path) {
+  cout << path << endl;
+
+  if(!chdir(path))
+    exit(0);
+  exit(1);
 }
 
 void internal_ls() {
@@ -385,6 +389,13 @@ void internal_ls() {
 }
 
 void internal_pwd() {
+  char* cpath = get_current_dir_name();
+  string cwd(cpath != nullptr ? cpath : "");
+  free(cpath);
+
+  write(STDOUT_FILENO, cwd.data(), cwd.size());
+  write(STDOUT_FILENO, "\n", 1);
+
   exit(0);
 }
 
