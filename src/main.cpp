@@ -22,7 +22,13 @@ void displayPrompt();
 string getUserInput(History& hist);
 vector<string> tokenizeInput(string input, string delims);
 string extractToken(string& input, char delim);
-void evaluateCommands(string input);
+void evaluateCommands(string input, History& hist);
+
+void internal_cd();
+void internal_ls();
+void internal_pwd();
+void internal_history(History& hist);
+void internal_exit();
 
 int main(int argc, char *argv[])
 {
@@ -41,7 +47,7 @@ int main(int argc, char *argv[])
       continue;
 
     history.addEntry(userInput);
-    evaluateCommands(userInput);
+    evaluateCommands(userInput, history);
   }
   ResetCanonicalMode(STDIN_FILENO, &SavedTermAttributes);
 
@@ -219,7 +225,7 @@ string getUserInput(History& hist)
   return "";
 }
 
-void evaluateCommands(string input) {
+void evaluateCommands(string input, History& hist) {
   vector<Command> commands;
 
   // Split input string into commands
@@ -278,7 +284,7 @@ void evaluateCommands(string input) {
         if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) {
           string fileMissing = "File \"" + inputFile + "\" does not exist!\n";
           write(STDOUT_FILENO, fileMissing.data(), fileMissing.size());
-          exit(1);
+          exit(74);
         };
         dup2(fileFD, STDERR_FILENO);
         close(fileFD);
@@ -286,16 +292,28 @@ void evaluateCommands(string input) {
 
       if(outputFile.size()) {
         if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) {
-          exit(1);
+          exit(73);
         }
         dup2(fileFD, STDERR_FILENO);
         close(fileFD);
       }
 
+      if(args[0] == "cd") {
+        internal_cd();
+      } else if(args[0] == "ls") {
+        internal_ls();
+      } else if(args[0] == "pwd") {
+        internal_pwd();
+      } else if(args[0] == "history") {
+        internal_history(hist);
+      } else if(args[0] == "exit") {
+        internal_exit();
+      }
+
       if (execvp(cmd_path, cmd_argv) == -1) {
         string failedExec = "Failed to execute " + args[0] + "\n";
         write(STDOUT_FILENO, failedExec.data(), failedExec.size());
-        exit(1);
+        exit(127);
       }
     } else {
       if(cmd_i) {
@@ -315,7 +333,11 @@ void evaluateCommands(string input) {
     close(tail_pipe[1]);
   }
 
-  while(waitpid(-1, NULL, 0)) if(errno == ECHILD) break;
+  int status = 0;
+  while(waitpid(-1, &status, 0)) {
+    if(WIFEXITED(status) && (WEXITSTATUS(status) == 3)) exit(0);
+    if(errno == ECHILD) break;
+  }
 }
 
 string extractToken(string& input, char delim) {
@@ -352,4 +374,25 @@ vector<string> tokenizeInput(string input, string delims) {
   }
 
   return tokens;
+}
+
+void internal_cd() {
+  exit(0);
+}
+
+void internal_ls() {
+  exit(0);
+}
+
+void internal_pwd() {
+  exit(0);
+}
+
+void internal_history(History& hist) {
+  hist.show();
+  exit(0);
+}
+
+void internal_exit() {
+  exit(3);
 }
