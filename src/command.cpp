@@ -1,24 +1,22 @@
 #include "command.hpp"
-#include <iostream>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-Command::Command(const vector<string> args, const map<int, string> fdPaths) :
+Command::Command(const vector<string> args, const map<int, int> fdMap) :
   _args(args),
-  _fdPaths(fdPaths),
-  inputPipeFDPair(nullptr),
-  outputPipeFDPair(nullptr),
-  inputFileFD(0),
-  outputFileFD(0)
+  _fdMap(fdMap),
+  _fds()
 {
+  for(auto el : _fdMap)
+    _fds.push_back(el.second);
 }
 
 
@@ -33,49 +31,21 @@ void Command::addArg(const string arg)
   _args.push_back(arg);
 }
 
-void Command::redirect(size_t fd, const string path)
+void Command::redirect(size_t fdDst, size_t fdSrc)
 {
-  _fdPaths.insert({fd, path});
-}
-
-void Command::setInputPipe(int* fdPair) {
-  inputPipeFDPair = fdPair;
-}
-
-void Command::setOutputPipe(int* fdPair) {
-  outputPipeFDPair = fdPair;
-}
-
-void Command::setInputFile(int fd) {
-  inputFileFD = fd;
-}
-
-void Command::setOutputFile(int fd) {
-  outputFileFD = fd;
+  _fdMap.insert({fdDst, fdSrc});
+  _fds.push_back(fdSrc);
 }
 
 int Command::execute()
 {
   // fork and only run if child
   pid_t pid = fork();
-  if(pid != 0) {
-
+  if(pid != 0)
     return pid;
-  }
 
-  if(inputFileFD) {
-    dup2(inputFileFD, STDIN_FILENO);
-  } else if (inputPipeFDPair) {
-    close(inputPipeFDPair[1]);
-    dup2(inputPipeFDPair[0], STDIN_FILENO);
-  }
-
-  if(outputFileFD) {
-    dup2(outputFileFD, STDOUT_FILENO);
-  } else if (outputPipeFDPair) {
-    close(outputPipeFDPair[0]);
-    dup2(outputPipeFDPair[1], STDOUT_FILENO);
-  }
+  for(auto el : _fdMap)
+    dup2(el.second, el.first);
 
   vector<const char*> cArgs;
 
@@ -87,4 +57,10 @@ int Command::execute()
 
   // should never happen
   return -1;
+}
+
+void Command::cleanup()
+{
+  for(int fd : _fds)
+    close(fd);
 }

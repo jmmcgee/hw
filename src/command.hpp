@@ -9,24 +9,17 @@ class Command
 {
   private:
     std::vector<std::string> _args;
-    std::map<int, std::string> _fdPaths;
-
-    int* inputPipeFDPair;
-    int* outputPipeFDPair;
-    int inputFileFD;
-    int outputFileFD;
+    std::map<int, int> _fdMap;
+    std::vector<int> _fds;
 
   public:
     Command(const std::vector<std::string> args = {},
-        const std::map<int, std::string> = {});
+        const std::map<int, int> = {});
 
     void setArg(size_t argNo, const std::string arg);
     void addArg(const std::string arg);
-    void redirect(size_t fd, const std::string path);
-    void setInputPipe(int* fdPair);
-    void setOutputPipe(int* fdPair);
-    void setInputFile(int fd);
-    void setOutputFile(int fd);
+    void redirect(size_t fdDst, size_t fdSrc);
     int execute();
+    void cleanup();
 };
 #endif
