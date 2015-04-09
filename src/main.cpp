@@ -24,7 +24,7 @@ vector<string> tokenizeInput(string input, string delims);
 string extractToken(string& input, char delim);
 void evaluateCommands(string input, History& hist);
 
-void internal_cd(const char* path);
+int internal_cd(const char* path);
 void internal_ls();
 void internal_pwd();
 void internal_history(History& hist);
@@ -242,21 +242,27 @@ void evaluateCommands(string input, History& hist) {
   vector<int> fileFDs;
 
   pid_t lastPid;
+  int cd_ret = -1;
 
   for(size_t cmd_i = 0; cmd_i < n_commands; ++cmd_i) {
+    // parse command
+    string cmd = pipedCommands[cmd_i];
+    string inputFile = extractToken(cmd, '<');
+    string outputFile = extractToken(cmd, '>');
+    vector<string> args = tokenizeInput(cmd, " ");
+    size_t n_args = args.size();
+
+    if(args[0] == "cd")
+      cd_ret = internal_cd(args[1].c_str());
+
     if(cmd_i < n_commands - 1) {
       pipe(head_pipe);
     }
 
-    if((lastPid = fork()) == -1) exit(1);
+    if((lastPid = fork()) == -1)
+      exit(1);
 
-    if(!lastPid) {
-      string cmd = pipedCommands[cmd_i];
-      string inputFile = extractToken(cmd, '<');
-      string outputFile = extractToken(cmd, '>');
-      vector<string> args = tokenizeInput(cmd, " ");
-      size_t n_args = args.size();
-
+    if(lastPid == 0) {
       const char* argv[n_args + 1];
       for(size_t arg_i = 0; arg_i < n_args; ++arg_i) {
         argv[arg_i] = args[arg_i].c_str();
@@ -299,7 +305,9 @@ void evaluateCommands(string input, History& hist) {
       }
 
       if(args[0] == "cd") {
-        internal_cd(args[1].c_str());
+        //internal_cd(args[1].c_str());
+        cout << args[1] << endl;
+        exit(cd_ret);
       } else if(args[0] == "ls") {
         internal_ls();
       } else if(args[0] == "pwd") {
@@ -376,12 +384,12 @@ vector<string> tokenizeInput(string input, string delims) {
   return tokens;
 }
 
-void internal_cd(const char* path) {
+int internal_cd(const char* path) {
   cout << path << endl;
 
   if(!chdir(path))
-    exit(0);
-  exit(1);
+    return 0;
+  return 1;
 }
 
 void internal_ls() {
