@@ -25,6 +25,7 @@ string extractToken(string& input, char delim);
 void evaluateCommands(string input, History& hist);
 
 int internal_cd(const char* path);
+int internal_cd();
 void internal_ls();
 void internal_pwd();
 void internal_history(History& hist);
@@ -252,8 +253,13 @@ void evaluateCommands(string input, History& hist) {
     vector<string> args = tokenizeInput(cmd, " ");
     size_t n_args = args.size();
 
-    if(args[0] == "cd")
-      cd_ret = internal_cd(args[1].c_str());
+    if(args[0] == "cd") {
+      if(n_args > 1)
+        cd_ret = internal_cd(args[1].c_str());
+      else
+        cd_ret = internal_cd();
+    }
+
 
     if(cmd_i < n_commands - 1) {
       pipe(head_pipe);
@@ -384,6 +390,12 @@ vector<string> tokenizeInput(string input, string delims) {
 
 int internal_cd(const char* path) {
   if(!chdir(path))
+    return 0;
+  return 1;
+}
+
+int internal_cd() {
+  if(!chdir(getenv("HOME")))
     return 0;
   return 1;
 }
