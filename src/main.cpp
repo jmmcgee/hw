@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include <iostream>
 #include <string>
@@ -26,6 +27,7 @@ void evaluateCommands(string input, History& hist);
 
 int internal_cd(const char* path);
 int internal_cd();
+void internal_ls(const char* path);
 void internal_ls();
 void internal_pwd();
 void internal_history(History& hist);
@@ -313,7 +315,10 @@ void evaluateCommands(string input, History& hist) {
       if(args[0] == "cd") {
         exit(cd_ret);
       } else if(args[0] == "ls") {
-        internal_ls();
+        if(n_args > 1)
+          internal_ls(args[1].c_str());
+        else
+          internal_ls();
       } else if(args[0] == "pwd") {
         internal_pwd();
       } else if(args[0] == "history") {
@@ -391,17 +396,28 @@ vector<string> tokenizeInput(string input, string delims) {
 int internal_cd(const char* path) {
   if(!chdir(path))
     return 0;
+
+  write(STDERR_FILENO, "Error changing directory.\n", 26);
   return 1;
 }
 
 int internal_cd() {
-  if(!chdir(getenv("HOME")))
-    return 0;
-  return 1;
+  return internal_cd(getenv("HOME"));
+}
+
+void internal_ls(const char* path) {
+  DIR* dirp = opendir(path);
+
+  struct dirent* info;
+  while((info = readdir(dirp))) {
+    
+  }
+
+  exit(0);
 }
 
 void internal_ls() {
-  exit(0);
+  internal_ls(".");
 }
 
 void internal_pwd() {
