@@ -272,6 +272,26 @@ void evaluateCommands(string input, History& hist) {
       const char* cmd_path = args[0].c_str();
       char* const* cmd_argv = (char* const*) argv;
 
+      int fileFD;
+
+      if(inputFile.size()) {
+        if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) {
+          string fileMissing = "File \"" + inputFile + "\" does not exist!\n";
+          write(STDOUT_FILENO, fileMissing.data(), fileMissing.size());
+          exit(74);
+        };
+        dup2(fileFD, STDIN_FILENO);
+        close(fileFD);
+      }
+
+      if(outputFile.size()) {
+        if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) {
+          exit(73);
+        }
+        dup2(fileFD, STDOUT_FILENO);
+        close(fileFD);
+      }
+
       if(cmd_i) {
         dup2(tail_pipe[0], STDIN_FILENO);
         close(tail_pipe[0]);
@@ -284,29 +304,7 @@ void evaluateCommands(string input, History& hist) {
         close(head_pipe[1]);
       }
 
-      int fileFD;
-
-      if(inputFile.size()) {
-        if((fileFD = open(inputFile.c_str(), O_RDONLY)) == -1) {
-          string fileMissing = "File \"" + inputFile + "\" does not exist!\n";
-          write(STDOUT_FILENO, fileMissing.data(), fileMissing.size());
-          exit(74);
-        };
-        dup2(fileFD, STDERR_FILENO);
-        close(fileFD);
-      }
-
-      if(outputFile.size()) {
-        if((fileFD = open(outputFile.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0664)) == -1) {
-          exit(73);
-        }
-        dup2(fileFD, STDERR_FILENO);
-        close(fileFD);
-      }
-
       if(args[0] == "cd") {
-        //internal_cd(args[1].c_str());
-        cout << args[1] << endl;
         exit(cd_ret);
       } else if(args[0] == "ls") {
         internal_ls();
@@ -385,8 +383,6 @@ vector<string> tokenizeInput(string input, string delims) {
 }
 
 int internal_cd(const char* path) {
-  cout << path << endl;
-
   if(!chdir(path))
     return 0;
   return 1;
