@@ -407,6 +407,12 @@ int internal_cd() {
 }
 
 void internal_ls(const char* path) {
+  char filepath[1024];
+  strcpy(filepath, path);
+  filepath[strlen(filepath)] = '/';
+
+  char* filename = filepath + strlen(path) + 1;
+
   DIR* dirp = opendir(path);
 
   if(!dirp) {
@@ -419,12 +425,8 @@ void internal_ls(const char* path) {
   struct dirent* file_info;
   struct stat file_stat;
   while((file_info = readdir(dirp))) {
-    int ret = stat(file_info->d_name, &file_stat);
-
-    if(ret < 0) {
-      cerr << "\t" << ret << ". ";
-      perror("stat: ");
-    }
+    strcpy(filename, file_info->d_name);
+    stat(filepath, &file_stat);
 
     write(STDOUT_FILENO, (S_ISDIR(file_stat.st_mode) ? "d" : "-"), 1);
     write(STDOUT_FILENO, ((S_IRUSR & file_stat.st_mode) ? "r" : "-"), 1);
