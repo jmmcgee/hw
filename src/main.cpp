@@ -421,20 +421,20 @@ void internal_ls(const char* path) {
   while((file_info = readdir(dirp))) {
     stat(file_info->d_name, &file_stat);
 
-    write(STDERR_FILENO, (S_ISDIR(file_stat.st_mode) ? "d" : "-"), 1);
-    write(STDERR_FILENO, ((S_IRUSR & file_stat.st_mode) ? "r" : "-"), 1);
-    write(STDERR_FILENO, ((S_IWUSR & file_stat.st_mode) ? "w" : "-"), 1);
-    write(STDERR_FILENO, ((S_IXUSR & file_stat.st_mode) ? "x" : "-"), 1);
-    write(STDERR_FILENO, ((S_IRGRP & file_stat.st_mode) ? "r" : "-"), 1);
-    write(STDERR_FILENO, ((S_IWGRP & file_stat.st_mode) ? "w" : "-"), 1);
-    write(STDERR_FILENO, ((S_IXGRP & file_stat.st_mode) ? "x" : "-"), 1);
-    write(STDERR_FILENO, ((S_IROTH & file_stat.st_mode) ? "r" : "-"), 1);
-    write(STDERR_FILENO, ((S_IWOTH & file_stat.st_mode) ? "w" : "-"), 1);
-    write(STDERR_FILENO, ((S_IXOTH & file_stat.st_mode) ? "x" : "-"), 1);
+    write(STDOUT_FILENO, (S_ISDIR(file_stat.st_mode) ? "d" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IRUSR & file_stat.st_mode) ? "r" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IWUSR & file_stat.st_mode) ? "w" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IXUSR & file_stat.st_mode) ? "x" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IRGRP & file_stat.st_mode) ? "r" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IWGRP & file_stat.st_mode) ? "w" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IXGRP & file_stat.st_mode) ? "x" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IROTH & file_stat.st_mode) ? "r" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IWOTH & file_stat.st_mode) ? "w" : "-"), 1);
+    write(STDOUT_FILENO, ((S_IXOTH & file_stat.st_mode) ? "x" : "-"), 1);
 
-    write(STDERR_FILENO, " ", 1);
-    write(STDERR_FILENO, file_info->d_name, strlen(file_info->d_name));
-    write(STDERR_FILENO, "\n", 1);
+    write(STDOUT_FILENO, " ", 1);
+    write(STDOUT_FILENO, file_info->d_name, strlen(file_info->d_name));
+    write(STDOUT_FILENO, "\n", 1);
   }
 
   exit(0);
