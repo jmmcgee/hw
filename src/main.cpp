@@ -1,17 +1,15 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <fcntl.h>
 #include <dirent.h>
-
-#include <iostream>
+#include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <string>
 #include <vector>
 
-#include "command.hpp"
 #include "history.hpp"
 #include "noncanmode.hpp"
 
@@ -230,7 +228,6 @@ string getUserInput(History& hist)
 }
 
 void evaluateCommands(string input, History& hist) {
-  vector<Command> commands;
 
   // Split input string into commands
   // Assume multiple commands must be piped and delimited by '|'
