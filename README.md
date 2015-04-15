@@ -1,11 +1,33 @@
-# hw
-Repo to store homework that's been tracked in git
+# Homework
 
-# ecs150-ashell
-Authors:
+## ecs150-ashell
+
+###### Class Information
+Professor Christopher Nitta,<br>
+ECS 150: Operating Systems and System Programming,<br>
+Spring Quarter 2015, UC Davis<br>
+
+###### Authors
   - Joseph McGee
   - Kelvin Lu
 
+###### Assignment
+
 This is a shell.
 
-Use 'cmake' to run. 'make_and_run.sh' is provided for convenience.
+###### Build
+
+This project uses the CMake build system:
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+./ashell
+```
+
+`make_and_run.sh` is provided for convenience.
+
+
+
