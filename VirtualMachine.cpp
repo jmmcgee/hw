@@ -6,7 +6,9 @@
 
 TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
 {
-  return 0;
+  TVMMainEntry main = VMLoadModule(argv[0]);
+  main(argc,argv);
+  return VM_STATUS_SUCCESS;
 }
 
 TVMStatus VMThreadCreate(TVMThreadEntry entry, void *param,
