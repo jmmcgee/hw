@@ -7,6 +7,9 @@ int main(int argc, char *argv[]){
     int MachineTickTime = 100;
     int Offset = 1;
     
+#define VMPrint(format, ...)        VMFilePrint ( 1,  format, ##__VA_ARGS__)
+#define VMPrintError(format, ...)   VMFilePrint ( 2,  format, ##__VA_ARGS__)
+
     while(Offset < argc){
         if(0 == strcmp(argv[Offset], "-t")){
             // Tick time in ms
