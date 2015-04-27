@@ -6,8 +6,11 @@
 
 TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
 {
-  TVMMainEntry main = VMLoadModule(argv[0]);
-  main(argc,argv);
+  TVMMainEntry vmmain = VMLoadModule(argv[0]);
+
+  if (!vmmain) return VM_STATUS_FAILURE;
+
+  vmmain(argc,argv);
   return VM_STATUS_SUCCESS;
 }
 
@@ -66,7 +69,7 @@ TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   return 0;
 }
 
-TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)     
+TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
 {
   return 0;
 }
@@ -85,7 +88,7 @@ TVMStatus VMFileOpen(const char *filename, int flags, int mode, int *filedescrip
   return 0;
 }
 
-TVMStatus VMFileClose(int filedescriptor)      
+TVMStatus VMFileClose(int filedescriptor)
 {
   return 0;
 }
@@ -104,4 +107,3 @@ TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
 {
   return 0;
 }
-
