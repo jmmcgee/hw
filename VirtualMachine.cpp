@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "VirtualMachine.h"
 
 
@@ -100,7 +102,17 @@ TVMStatus VMFileRead(int filedescriptor, void *data, int *length)
 
 TVMStatus VMFileWrite(int filedescriptor, void *data, int *length)
 {
-  return 0;
+  ssize_t bytes_written;
+
+  if (!data || !length) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+  bytes_written = write(filedescriptor, data, *length);
+
+  if (bytes_written == -1) return VM_STATUS_FAILURE;
+
+  *length = *length - bytes_written;
+
+  return VM_STATUS_SUCCESS;
 }
 
 TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
