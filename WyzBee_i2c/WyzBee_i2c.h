@@ -29,6 +29,9 @@
 #ifndef WyzBee_I2C_H
 #define WyzBee_I2C_H
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 /*
  *********************************************************************************************************
  *                                              INCLUDE FILES
@@ -144,5 +147,9 @@ err_t   WyzBeeI2c_Read   ( uint8_t               slave_addr,
  *                                           END
  *********************************************************************************************************
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // WyzBee_I2c_H

@@ -692,14 +692,14 @@ extern "C" {
     #define MFS2_TX_IRQHandler(void)           IRQ065_Handler(void) ///< Multi Function Serial Reception/Status Ch. 2
     #define MFS3_RX_IRQHandler(void)           IRQ066_Handler(void) ///< Multi Function Serial Reception Ch. 3
     #define MFS3_TX_IRQHandler(void)           IRQ067_Handler(void) ///< Multi Function Serial Reception/Status Ch. 3
-   // #define MFS4_RX_IRQHandler(void)           IRQ068_Handler(void) ///< Multi Function Serial Reception Ch. 4
-    //#define MFS4_TX_IRQHandler(void)           IRQ069_Handler(void) ///< Multi Function Serial Reception/Status Ch. 4
+    #define MFS4_RX_IRQHandler(void)           IRQ068_Handler(void) ///< Multi Function Serial Reception Ch. 4
+    #define MFS4_TX_IRQHandler(void)           IRQ069_Handler(void) ///< Multi Function Serial Reception/Status Ch. 4
     #define MFS5_RX_IRQHandler(void)           IRQ070_Handler(void) ///< Multi Function Serial Reception Ch. 5
     #define MFS5_TX_IRQHandler(void)           IRQ071_Handler(void) ///< Multi Function Serial Reception/Status Ch. 5
     #define MFS6_RX_IRQHandler(void)           IRQ072_Handler(void) ///< Multi Function Serial Reception Ch. 6
     #define MFS6_TX_IRQHandler(void)           IRQ073_Handler(void) ///< Multi Function Serial Reception/Status Ch. 6
-    #define MFS7_RX_IRQHandler(void)           IRQ074_Handler(void) ///< Multi Function Serial Reception Ch. 7
-    #define MFS7_TX_IRQHandler(void)           IRQ075_Handler(void) ///< Multi Function Serial Reception/Status Ch. 7
+ //    #define MFS7_RX_IRQHandler(void)           IRQ074_Handler(void) ///< Multi Function Serial Reception Ch. 7
+ //   #define MFS7_TX_IRQHandler(void)           IRQ075_Handler(void) ///< Multi Function Serial Reception/Status Ch. 7
     #define ADC0_IRQHandler(void)              IRQ076_Handler(void) ///< Analog Digital Converter Unit 0
     #define ADC1_IRQHandler(void)              IRQ077_Handler(void) ///< Analog Digital Converter Unit 1
     #define USB0_IRQHandler(void)              IRQ078_Handler(void) ///< USB Ch. 0 (DRQ of endpoint 1 to 5) 

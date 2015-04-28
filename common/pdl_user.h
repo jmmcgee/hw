@@ -96,7 +96,7 @@
 #define PDL_PERIPHERAL_ENABLE_CAN1              PDL_OFF
    
 // Clock
-#define PDL_PERIPHERAL_ENABLE_CLK               PDL_OFF
+#define PDL_PERIPHERAL_ENABLE_CLK               PDL_ON
      
 // CR Trimming
 #define PDL_PERIPHERAL_ENABLE_CR                PDL_OFF
@@ -178,7 +178,7 @@
 #define PDL_PERIPHERAL_ENABLE_MFS4              PDL_ON
 #define PDL_PERIPHERAL_ENABLE_MFS5              PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_MFS6              PDL_OFF
-#define PDL_PERIPHERAL_ENABLE_MFS7              PDL_OFF
+#define PDL_PERIPHERAL_ENABLE_MFS7              PDL_ON
 #define PDL_PERIPHERAL_ENABLE_MFS8              PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_MFS9              PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_MFS10             PDL_OFF
@@ -223,7 +223,7 @@
 #define PDL_PERIPHERAL_ENABLE_QPRC3             PDL_OFF
 
 // Reset Cause
-#define PDL_PERIPHERAL_ENABLE_RESET             PDL_OFF
+#define PDL_PERIPHERAL_ENABLE_RESET             PDL_ON
 
 // Real Time Clock
 #define PDL_PERIPHERAL_ENABLE_RTC0              PDL_OFF
@@ -440,7 +440,7 @@
 #define PDL_INTERRUPT_ENABLE_MFS4              PDL_ON
 #define PDL_INTERRUPT_ENABLE_MFS5              PDL_OFF
 #define PDL_INTERRUPT_ENABLE_MFS6              PDL_OFF
-#define PDL_INTERRUPT_ENABLE_MFS7              PDL_OFF
+#define PDL_INTERRUPT_ENABLE_MFS7              PDL_ON
 #define PDL_INTERRUPT_ENABLE_MFS8              PDL_OFF
 #define PDL_INTERRUPT_ENABLE_MFS9              PDL_OFF
 #define PDL_INTERRUPT_ENABLE_MFS10             PDL_OFF
@@ -931,7 +931,7 @@
  ******************************************************************************
  ** \brief Enable/disable print on the terminal window
  ******************************************************************************/
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 #endif // __PDL_USER_H__
 
