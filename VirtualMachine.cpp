@@ -34,6 +34,8 @@ extern "C" {
       TVMThreadID getId();
       TVMThreadState getState();
 
+      void activate();
+
       void decrementSleepCounter();
   };
 
@@ -82,8 +84,6 @@ extern "C" {
 
     TVMMainEntry vmmain = VMLoadModule(argv[0]);
     if (!vmmain) return VM_STATUS_FAILURE;
-
-    // TODO: create special-case TCB for VMMain main thread.
 
     vmmain(argc,argv);
 
@@ -257,6 +257,17 @@ extern "C" {
     return state;
   }
 
+  void ThreadControlBlock::activate()
+  {
+    state = VM_THREAD_STATE_READY;
+
+    // TODO: write skeleton function wrapper,
+    // write struct containing actual entry point and param pointer
+    // to pass into skeleton
+
+    // TODO: figure out how MachineCreateContext works
+  }
+
   void ThreadControlBlock::decrementSleepCounter()
   {
     if (sleepcounter) --sleepcounter;
@@ -311,6 +322,7 @@ extern "C" {
     if (tcb_ptr->getState() != VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
 
     // Set state, create context, schedule into ready queue
+    tcb_ptr->activate();
 
     return VM_STATUS_SUCCESS;
   }
