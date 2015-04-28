@@ -45,7 +45,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\</OutputDirectory>
-          <OutputName>Lab1</OutputName>
+          <OutputName>ext_int</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>0</CreateHexFile>
@@ -175,7 +175,7 @@
           <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
-          <pFcarmGrp>CalBee_spi</pFcarmGrp>
+          <pFcarmGrp></pFcarmGrp>
           <pFcArmRoot></pFcArmRoot>
           <FcArmLst>0</FcArmLst>
         </Utilities>
@@ -207,7 +207,7 @@
             <AdsLven>1</AdsLven>
             <AdsLsxf>1</AdsLsxf>
             <RvctClst>0</RvctClst>
-            <GenPPlst>1</GenPPlst>
+            <GenPPlst>0</GenPPlst>
             <AdsCpuType>"Cortex-M4"</AdsCpuType>
             <RvctDeviceName></RvctDeviceName>
             <mOS>0</mOS>
@@ -362,7 +362,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\common;.\lib\inc;.\WyzBee_SPI;.\WyzBee_oled;.\WyzBee_gpio;.\WyzBee_i2c</IncludePath>
+              <IncludePath>.\common;.\lib\inc;.\WyzBee_ext;.\WyzBee_gpio</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -404,7 +404,82 @@
       <Groups>
         <Group>
           <GroupName>Source Group 1</GroupName>
+          <GroupOption>
+            <CommonProperty>
+              <UseCPPCompiler>0</UseCPPCompiler>
+              <RVCTCodeConst>0</RVCTCodeConst>
+              <RVCTZI>0</RVCTZI>
+              <RVCTOtherData>0</RVCTOtherData>
+              <ModuleSelection>0</ModuleSelection>
+              <IncludeInBuild>2</IncludeInBuild>
+              <AlwaysBuild>2</AlwaysBuild>
+              <GenerateAssemblyFile>2</GenerateAssemblyFile>
+              <AssembleAssemblyFile>2</AssembleAssemblyFile>
+              <PublicsOnly>2</PublicsOnly>
+              <StopOnExitCode>11</StopOnExitCode>
+              <CustomArgument></CustomArgument>
+              <IncludeLibraryModules></IncludeLibraryModules>
+              <ComprImg>1</ComprImg>
+            </CommonProperty>
+            <GroupArmAds>
+              <Cads>
+                <interw>2</interw>
+                <Optim>0</Optim>
+                <oTime>2</oTime>
+                <SplitLS>2</SplitLS>
+                <OneElfS>2</OneElfS>
+                <Strict>2</Strict>
+                <EnumInt>2</EnumInt>
+                <PlainCh>2</PlainCh>
+                <Ropi>2</Ropi>
+                <Rwpi>2</Rwpi>
+                <wLevel>2</wLevel>
+                <uThumb>2</uThumb>
+                <uSurpInc>2</uSurpInc>
+                <uC99>2</uC99>
+                <useXO>2</useXO>
+                <VariousControls>
+                  <MiscControls></MiscControls>
+                  <Define></Define>
+                  <Undefine></Undefine>
+                  <IncludePath>.\WyzBee_timer;.\WyzBee_gpio;.\WyzBee_oled;.\WyzBee_SPI</IncludePath>
+                </VariousControls>
+              </Cads>
+              <Aads>
+                <interw>2</interw>
+                <Ropi>2</Ropi>
+                <Rwpi>2</Rwpi>
+                <thumb>2</thumb>
+                <SplitLS>2</SplitLS>
+                <SwStkChk>2</SwStkChk>
+                <NoWarn>2</NoWarn>
+                <uSurpInc>2</uSurpInc>
+                <useXO>2</useXO>
+                <VariousControls>
+                  <MiscControls></MiscControls>
+                  <Define></Define>
+                  <Undefine></Undefine>
+                  <IncludePath></IncludePath>
+                </VariousControls>
+              </Aads>
+            </GroupArmAds>
+          </GroupOption>
           <Files>
+            <File>
+              <FileName>main.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\main.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Adafruit_SSD1351.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_oled\Adafruit_SSD1351.h</FilePath>
+            </File>
+            <File>
+              <FileName>lab2_int.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\lab2_int.cpp</FilePath>
+            </File>
             <File>
               <FileName>startup_mb9bf56x.s</FileName>
               <FileType>2</FileType>
@@ -416,19 +491,14 @@
               <FilePath>.\system_mb9abxxx.c</FilePath>
             </File>
             <File>
+              <FileName>pdl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\pdl.c</FilePath>
+            </File>
+            <File>
               <FileName>exint.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\lib\src\exint.c</FilePath>
-            </File>
-            <File>
-              <FileName>mfs.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\src\mfs.c</FilePath>
-            </File>
-            <File>
-              <FileName>mfs_hl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\lib\src\mfs_hl.c</FilePath>
             </File>
             <File>
               <FileName>interrupts.c</FileName>
@@ -436,9 +506,39 @@
               <FilePath>.\common\interrupts.c</FilePath>
             </File>
             <File>
-              <FileName>pdl.c</FileName>
+              <FileName>WyzBee_timer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\common\pdl.c</FilePath>
+              <FilePath>.\WyzBee_timer\WyzBee_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>WyzBee_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_timer\WyzBee_timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>dt.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\inc\dt.h</FilePath>
+            </File>
+            <File>
+              <FileName>dt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\src\dt.c</FilePath>
+            </File>
+            <File>
+              <FileName>mcu.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\mcu.h</FilePath>
+            </File>
+            <File>
+              <FileName>pdl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\pdl.h</FilePath>
+            </File>
+            <File>
+              <FileName>pdl_user.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\pdl_user.h</FilePath>
             </File>
             <File>
               <FileName>WyzBee_gpio.c</FileName>
@@ -446,54 +546,59 @@
               <FilePath>.\WyzBee_gpio\WyzBee_gpio.c</FilePath>
             </File>
             <File>
+              <FileName>WyzBee_gpio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\WyzBee_gpio.h</FilePath>
+            </File>
+            <File>
+              <FileName>clk.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\inc\clk.h</FilePath>
+            </File>
+            <File>
               <FileName>clk.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\lib\src\clk.c</FilePath>
+            </File>
+            <File>
+              <FileName>mfs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\inc\mfs.h</FilePath>
+            </File>
+            <File>
+              <FileName>mfs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\lib\src\mfs.c</FilePath>
+            </File>
+            <File>
+              <FileName>reset.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\lib\inc\reset.h</FilePath>
             </File>
             <File>
               <FileName>reset.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\lib\src\reset.c</FilePath>
             </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>App</GroupName>
-          <Files>
             <File>
-              <FileName>main.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\main.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>main.h</FileName>
+              <FileName>WyzBee_ext.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\main.h</FilePath>
+              <FilePath>.\WyzBee_ext\WyzBee_ext.h</FilePath>
             </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>WyzBee_spi</GroupName>
-          <Files>
             <File>
-              <FileName>WyzBee_spi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\WyzBee_SPI\WyzBee_spi.c</FilePath>
+              <FileName>Adafruit_GFX.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\WyzBee_oled\Adafruit_GFX.cpp</FilePath>
             </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>WyzBee_oled</GroupName>
-          <Files>
+            <File>
+              <FileName>Adafruit_GFX.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_oled\Adafruit_GFX.h</FilePath>
+            </File>
             <File>
               <FileName>Adafruit_SSD1351.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\WyzBee_oled\Adafruit_SSD1351.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>Adafruit_SSD1351.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\WyzBee_oled\Adafruit_SSD1351.h</FilePath>
             </File>
             <File>
               <FileName>binary.h</FileName>
@@ -531,29 +636,69 @@
               <FilePath>.\WyzBee_oled\SPI_OLED.h</FilePath>
             </File>
             <File>
-              <FileName>Adafruit_GFX.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\WyzBee_oled\Adafruit_GFX.cpp</FilePath>
+              <FileName>WyzBee_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\WyzBee_SPI\WyzBee_spi.c</FilePath>
             </File>
             <File>
-              <FileName>Adafruit_GFX.h</FileName>
+              <FileName>WyzBee_spi.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\WyzBee_oled\Adafruit_GFX.h</FilePath>
+              <FilePath>.\WyzBee_SPI\WyzBee_spi.h</FilePath>
+            </File>
+            <File>
+              <FileName>chip.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\chip.h</FilePath>
+            </File>
+            <File>
+              <FileName>timetick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\WyzBee_gpio\timetick.c</FilePath>
+            </File>
+            <File>
+              <FileName>timetick.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\timetick.h</FilePath>
+            </File>
+            <File>
+              <FileName>variant.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\WyzBee_gpio\variant.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>variant.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\variant.h</FilePath>
+            </File>
+            <File>
+              <FileName>wiring.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\WyzBee_gpio\wiring.c</FilePath>
+            </File>
+            <File>
+              <FileName>wiring.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\wiring.h</FilePath>
+            </File>
+            <File>
+              <FileName>WyzBee.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\WyzBee.h</FilePath>
+            </File>
+            <File>
+              <FileName>Wyzbee_kit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\WyzBee_gpio\Wyzbee_kit.h</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>WyzBee_i2c.c</GroupName>
+          <GroupName>WyzBee_ext</GroupName>
           <Files>
             <File>
-              <FileName>WyzBee_i2c.c</FileName>
+              <FileName>WyzBee_ext.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\WyzBee_i2c\WyzBee_i2c.c</FilePath>
-            </File>
-            <File>
-              <FileName>WyzBee_i2c.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\WyzBee_i2c\WyzBee_i2c.h</FilePath>
+              <FilePath>.\WyzBee_ext\WyzBee_ext.c</FilePath>
             </File>
           </Files>
         </Group>
