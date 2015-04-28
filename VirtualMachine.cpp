@@ -1,5 +1,7 @@
 #include <unistd.h>
 
+#include <vector>
+
 #include "Machine.h"
 #include "VirtualMachine.h"
 
@@ -7,6 +9,19 @@
 /** VM Thread API **/
 
 extern "C" {
+  class ThreadControlBlock {
+    public:
+      SMachineContext mcnxt;
+      void *stackaddr;
+      TVMMemorySize stacksize;
+
+      TVMTick sleepcounter;
+      TVMThreadID id;
+      TVMThreadPriority prio;
+      TVMThreadState state;
+
+  }
+
   volatile TVMTick sleepCounter = 0;
 
   void MachineAlarmCallback(void *calldata);
