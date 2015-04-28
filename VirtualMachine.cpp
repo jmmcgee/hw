@@ -1,14 +1,16 @@
 #include <unistd.h>
 
-#include <vector>
+#include <deque>
 
 #include "Machine.h"
 #include "VirtualMachine.h"
 
 
-/** VM Thread API **/
 
 extern "C" {
+  /** Forward Delcarations **/
+
+
   class ThreadControlBlock {
     public:
       SMachineContext mcnxt;
@@ -20,11 +22,29 @@ extern "C" {
       TVMThreadPriority prio;
       TVMThreadState state;
 
-  }
+  };
 
-  volatile TVMTick sleepCounter = 0;
+  class ThreadManager {
+    public:
+      std::deque<ThreadControlBlock*> threadqueue_ready_low;
+      std::deque<ThreadControlBlock*> threadqueue_ready_med;
+      std::deque<ThreadControlBlock*> threadqueue_ready_high;
+
+      void decrementSleepcounters() volatile;
+  };
 
   void MachineAlarmCallback(void *calldata);
+
+
+  /** VM Globals **/
+
+
+  volatile ThreadControlBlock *currentthread = NULL;
+  volatile ThreadManager threadmanager;
+
+
+  /** VM Thread API **/
+
 
   TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
   {
@@ -34,6 +54,8 @@ extern "C" {
 
     TVMMainEntry vmmain = VMLoadModule(argv[0]);
     if (!vmmain) return VM_STATUS_FAILURE;
+
+    // TODO: create TCB for VMMain main thread.
 
     vmmain(argc,argv);
 
@@ -77,9 +99,9 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    sleepCounter = tick;
+    currentthread->sleepcounter = tick;
 
-    while(sleepCounter);
+    while(currentthread->sleepcounter);
 
     return VM_STATUS_SUCCESS;
   }
@@ -152,8 +174,16 @@ extern "C" {
     return 0;
   }
 
+
+  /** VM Thread Scheduler **/
+
+
   void MachineAlarmCallback(void *calldata)
   {
-    if (sleepCounter) --sleepCounter;
+    threadmanager.decrementSleepcounters();
+  }
+
+  void ThreadManager::decrementSleepcounters() volatile {
+
   }
 }
