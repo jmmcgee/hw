@@ -13,7 +13,13 @@ extern "C" {
 
   class ThreadControlBlock {
     public:
+      bool ismainthread;
+
       SMachineContext mcnxt;
+
+      TVMThreadEntry entry;
+      void* param;
+
       void *stackaddr;
       TVMMemorySize stacksize;
 
@@ -22,15 +28,25 @@ extern "C" {
       TVMThreadPriority prio;
       TVMThreadState state;
 
+      ThreadControlBlock(bool ismainthread);
+      ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio);
+
+      void decrementSleepCounter();
   };
 
   class ThreadManager {
     public:
+      ThreadControlBlock *currentthread;
+
       std::deque<ThreadControlBlock*> threadqueue_ready_low;
       std::deque<ThreadControlBlock*> threadqueue_ready_med;
       std::deque<ThreadControlBlock*> threadqueue_ready_high;
 
-      void decrementSleepcounters() volatile;
+      std::deque<ThreadControlBlock*> threadqueue_sleeping;
+      std::deque<ThreadControlBlock*> threadqueue_waiting;
+      std::deque<ThreadControlBlock*> threadqueue_dead;
+
+      void decrementSleepcounters();
   };
 
   void MachineAlarmCallback(void *calldata);
@@ -39,8 +55,7 @@ extern "C" {
   /** VM Globals **/
 
 
-  volatile ThreadControlBlock *currentthread = NULL;
-  volatile ThreadManager threadmanager;
+  ThreadManager threadmanager;
 
 
   /** VM Thread API **/
@@ -55,7 +70,7 @@ extern "C" {
     TVMMainEntry vmmain = VMLoadModule(argv[0]);
     if (!vmmain) return VM_STATUS_FAILURE;
 
-    // TODO: create TCB for VMMain main thread.
+    // TODO: create special-case TCB for VMMain main thread.
 
     vmmain(argc,argv);
 
@@ -99,9 +114,9 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    currentthread->sleepcounter = tick;
+    threadmanager.currentthread->sleepcounter = tick;
 
-    while(currentthread->sleepcounter);
+    while(threadmanager.currentthread->sleepcounter);
 
     return VM_STATUS_SUCCESS;
   }
@@ -183,7 +198,23 @@ extern "C" {
     threadmanager.decrementSleepcounters();
   }
 
-  void ThreadManager::decrementSleepcounters() volatile {
+  ThreadControlBlock::ThreadControlBlock(bool ismainthread) : ismainthread(ismainthread) {
 
+  }
+
+  ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio) : entry(entry), param(param), stacksize(memsize), prio(prio)
+  {
+
+  }
+
+  void ThreadControlBlock::decrementSleepCounter()
+  {
+    if (sleepcounter) --sleepcounter;
+  }
+
+  void ThreadManager::decrementSleepcounters()
+  {
+    for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end(); ++tcb_it)
+      (*tcb_it)->decrementSleepCounter();
   }
 }
