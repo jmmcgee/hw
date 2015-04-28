@@ -1,18 +1,28 @@
 #include <unistd.h>
 
+#include "Machine.h"
 #include "VirtualMachine.h"
 
 
 /** VM Thread API **/
 
+volatile TVMTick sleepCounter = 0;
+
+void MachineAlarmCallback(void *calldata);
 
 TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
 {
-  TVMMainEntry vmmain = VMLoadModule(argv[0]);
+  MachineInitialize(machinetickms);
 
+  MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
+
+  TVMMainEntry vmmain = VMLoadModule(argv[0]);
   if (!vmmain) return VM_STATUS_FAILURE;
 
   vmmain(argc,argv);
+
+  MachineTerminate();
+
   return VM_STATUS_SUCCESS;
 }
 
@@ -49,7 +59,13 @@ TVMStatus VMThreadState(TVMThreadID thread, TVMThreadStateRef stateref)
 
 TVMStatus VMThreadSleep(TVMTick tick)
 {
-  return 0;
+  if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+  sleepCounter = tick;
+
+  while(sleepCounter);
+
+  return VM_STATUS_SUCCESS;
 }
 
 
@@ -118,4 +134,9 @@ TVMStatus VMFileWrite(int filedescriptor, void *data, int *length)
 TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
 {
   return 0;
+}
+
+void MachineAlarmCallback(void *calldata)
+{
+  if (sleepCounter) --sleepCounter;
 }
