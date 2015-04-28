@@ -198,11 +198,19 @@ extern "C" {
     threadmanager.decrementSleepcounters();
   }
 
-  ThreadControlBlock::ThreadControlBlock(bool ismainthread) : ismainthread(ismainthread) {
+  ThreadControlBlock::ThreadControlBlock(bool ismainthread):
+    ismainthread(ismainthread)
+    prio(VM_THREAD_PRIORITY_NORMAL)
+  {
 
   }
 
-  ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio) : entry(entry), param(param), stacksize(memsize), prio(prio)
+  ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio):
+    ismainthread(false),
+    entry(entry),
+    param(param),
+    stacksize(memsize),
+    prio(prio)
   {
 
   }
