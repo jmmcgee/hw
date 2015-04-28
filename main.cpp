@@ -22,6 +22,7 @@
 int screen = 0;
 char buf[336];
 int c = 0;
+char val = 0;
 uint8_t ir;
 
 int main(void)
@@ -31,54 +32,63 @@ int main(void)
   initTimer();
   WyzBeeGpio_InitIn(10, 0);
   WyzBeeGpio_InitOut(12, 1);
-
+  
+  oled.setCursor(0,0);
   setColor(G);
   screen = 0;
   while(1)
   {
-    ir = WyzBeeGpio_Get(10);
-    WyzBeeGpio_Put(GPIO_2, ir); //GPIO_2 = PIN 4 = PORT P12
-
     if(!!WyzBeeGpio_Get(4E))
       continue;
 
     setColor(G_OFF);
     setColor(R);
-    //c += sprintf(buf+c, "ext: %3d\n", extIntCount);
-    //c += sprintf(buf+c, "val: %3d\n", Dt_ReadCurCntVal(Dt_Channel0));
 
-    for(int row = 0; row < NROWS; row++) {
-			for(int bit = 0; bit < 8; bit++) {
-				int index = row*16 + 0 + bit;
-				if(index > NUM_INTERVALS)
-					break;
-				else
-					c += sprintf(buf+c, "%1d", interperetInterval(intervals[row*16 + 8 + bit]));
-			}
-			
-			c += sprintf(buf+c, " ");
+    // switch code
+    key_t key = readInput();
+    switch(key) {
+      case KEY_0:
+        val = '0';
+        break;
+      case KEY_1:
+        val = '1';
+        break;
+      case KEY_2:
+        val = '2';
+        break;
+      case KEY_3:
+        val = '3';
+        break;
+      case KEY_4:
+        val = '4';
+        break;
+      case KEY_5:
+        val = '5';
+        break;
+        /*case KEY_6:
+          val = '6';
+          break;*/
+      case KEY_7:
+        val = '7';
+        break;
+      case KEY_8:
+        val = '8';
+        break;
+      case KEY_9:
+        val = '9';
+        break;
 
-			for(int bit = 0; bit < 8; bit++) {
-				int index = row*16 + 8 + bit;
-				if(index > NUM_INTERVALS)
-					break;
-				else
-					c += sprintf(buf+c, "%1d", interperetInterval(intervals[row*16 + 8 + bit]));
-			}
-			
-			c += sprintf(buf+c, "\n");
-		}
+      case NONE:
+      default:
+        val = '*';
+    } // switch code
 
-    ++screen %= NUM_INTERVALS/NROWS;
- 
-    oled.setCursor(0,0);
-    oled.writeString(buf, c);
+    oled.writeString(&val, 1);
     c = 0;
 
     setColor(R_OFF);
     setColor(G);
   }
-
 }
 
 

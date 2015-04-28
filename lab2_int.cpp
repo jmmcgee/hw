@@ -20,6 +20,7 @@ volatile uint32_t extIntCount = 0;
 volatile uint32_t intervals[NUM_INTERVALS] = {0};
 volatile uint32_t lastInterval = 0;
 volatile uint32_t lastTime = 0;
+volatile uint32_t pos = 0;
 
 static WyzBee_exint_config_t WyzBeeExtIntConfig;
 
@@ -79,7 +80,7 @@ int initTimer()
 
 void extInt()
 {
-  static uint8_t flag;
+  static volatile uint8_t flag;
 
   if(!flag)
   {
@@ -88,16 +89,13 @@ void extInt()
     uint32_t time = Dt_ReadCurCntVal(Dt_Channel0);
     intervals[lastInterval] = time < lastTime ? lastTime - time: lastTime + (4294967295u - time);
 		lastTime = time;
-
-    extIntCount++;
-    if(lastInterval < NUM_INTERVALS)
-        ++lastInterval;
+    ++lastInterval %= NUM_INTERVALS;
     flag=1;
   }
   else
   {
     setColor(B_OFF);
-    flag =0;
+    flag = 0;
   }
 }
 
@@ -164,8 +162,8 @@ void setColor(uint8_t color, uint32_t delay)
 interval_t interperetInterval(uint32_t interval)
 {
 	interval_t val = LONG;
-	float ratio = (float)interval / 12000.0;
-	float tolerance = 0.1;
+	double ratio = (double)interval / 12000.0;
+	double tolerance = 0.1;
 	
 	if(ratio > (1.0 - tolerance) && ratio < (1.0 + tolerance))
 		val = LOW;
@@ -174,4 +172,63 @@ interval_t interperetInterval(uint32_t interval)
 	else if(ratio > (2.0 - tolerance) && ratio < (2.0 + tolerance))
 		val = BREAK;
 	return val;
+}
+
+interval_t nextBit()
+{
+	interval_t bit = interperetInterval(intervals[pos]);
+	++pos %= NUM_INTERVALS;
+	return bit;
+}
+
+uint8_t readByte()
+{
+	interval_t bit = LONG;
+	uint8_t code = 0;
+	key_t key = NONE;
+	
+	if((bit = nextBit()) != BREAK)
+		return NONE;
+
+	// read code
+	for(int i = 0; i < 8; i++) {
+		if( (bit = nextBit()) == LONG)
+			break;
+		else if(bit == LOW)
+			code = (code << 1) & 0x00000000;
+		else if(bit == HIGH)
+			code = (code << 1) & 0x00000001;
+	} // read code
+	
+	return code;
+}
+
+key_t readInput()
+{
+	uint32_t code = 0x00000000;
+	key_t key = NONE;
+
+	code = (code << 8) & readByte();
+	code = (code << 8) & readByte();
+	// switch code
+	switch(code) {
+		KEY_0:
+		KEY_1:
+		KEY_2:
+		KEY_3:
+		KEY_4:
+		KEY_5:
+		KEY_6:
+		KEY_7:
+		KEY_8:
+		KEY_9:
+			key = (key_t)code;
+			break;
+
+		NONE:
+		default:
+			key = NONE;
+	} // switch code
+
+	return key;
 }
