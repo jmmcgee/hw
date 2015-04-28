@@ -480,15 +480,3 @@ void Adafruit_GFX::invertDisplay(boolean i) {
   // Do nothing, must be subclassed if supported
 }
 
-void Adafruit_GFX::writeString(const char* str)
-{
-    int i = 0;
-    char c = *str;
-    const char* ptr;
-    
-    for(; c != '\0'; i++) {
-        ptr = str+i;
-        c = *ptr;
-        this->write(c);
-    }
-}

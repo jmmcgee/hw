@@ -45,6 +45,21 @@ void delay(uint32_t _delay)  // delay
 }
 
 
+/********************************** custom */
+
+void Adafruit_SSD1351::writeString(const char* str, int32_t len)
+{
+    int i = 0;
+    char c = *str;
+    const char* ptr;
+    
+    for(; c != '\0' && i < len; i++) {
+        ptr = str+i;
+        c = *ptr;
+        this->write(c);
+    }
+}
+
 
 
 
@@ -316,7 +331,6 @@ void  Adafruit_SSD1351::invert(boolean v) {
 }
 
 /********************************* low level pin initialization */
-
 
 Adafruit_SSD1351::Adafruit_SSD1351(void) : Adafruit_GFX(SSD1351WIDTH, SSD1351HEIGHT) {
 

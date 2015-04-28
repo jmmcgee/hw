@@ -75,8 +75,6 @@ class Adafruit_GFX  {
 #else
   virtual void   write(uint8_t);
 #endif
-  void writeString(const char* str);
-
 
   int16_t
     height(void),

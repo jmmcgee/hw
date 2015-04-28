@@ -83,11 +83,16 @@
 
 class Adafruit_SSD1351  : public virtual Adafruit_GFX {
  public:
+
   Adafruit_SSD1351(void);
   //Adafruit_SSD1351(uint8_t CS, uint8_t RS, uint8_t RST);
 
   uint16_t Color565(uint8_t r, uint8_t g, uint8_t b);
 
+/********************************** custom */
+  void writeString(const char* str, int32_t len);
+
+ 
   // drawing primitives!
   void drawPixel(int16_t x, int16_t y, uint16_t color);
   void fillRect(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
@@ -112,7 +117,7 @@ class Adafruit_SSD1351  : public virtual Adafruit_GFX {
 
   void setWriteDir(void);
   void write8(uint8_t d);
-  
+
  private:
   void spiwrite(uint8_t);
 

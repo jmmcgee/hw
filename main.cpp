@@ -1,103 +1,71 @@
+/*
+ * Includes
+ */
 #include <stdio.h>
 #include <string.h>
 
-#include <Adafruit_GFX.h>
-#include "Adafruit_SSD1351.h"
-#include <SPI_OLED.h>
-#include <WyzBee_spi.h>
-#include <WyzBee_i2c.h>
+#include <WyzBee.h>
+#include <WyzBee_kit.h>
+
 #include <WyzBee_gpio.h>
-
-extern Adafruit_SSD1351 tft = Adafruit_SSD1351(); //@  OLED class variable
-/*===================================================*/
-/**
- * @fn            void print_oled(int8 *text, uint16_t color)
- * @brief        this functions is used to print the data on the oled screen
- * @param 1[in]    int8 *text
- * @param 2[in]    uint16_t color , color
- * @param[out]    none
- * @return        none
- * @description This API should contain the code / function call which will prints the data on the OLED screen.
- */
+#include <WyzBee_ext.h>
+#include <WyzBee_timer.h>
+#include <WyzBee_spi.h>
+#include <SPI_OLED.h>
 
 
-WyzBeeSpi_Config  config_stc={
-        4000000,
-        SpiMaster,
-        SpiSyncWaitZero,
-        SpiEightBits,
-        SpiMsbBitFirst,
-        SpiClockMarkHigh,
-        SpiNoUseIntrmode,
-        NULL,                                                                
-        NULL
-};
+#include "lab2_int.h"
 
-WyzBeeI2c_Config config_i2c={
-    100000,
-    I2cMasterMode,
-    I2cNoizeFilterLess100M,
-    0x00
-};
 
-void setColor(int color);
-
-int main()
+int main(void)
 {
-    WyzBeeSpi_Init(&config_stc); // initialize spi
-    WyzBeeI2c_Init(&config_i2c); // initialize i2c
-    Adafruit_SSD1351 myOled;
-    myOled.begin(); //@ OLED screen Initialization
+  char buf[336];
+  int c = 0;
+	uint8_t ir;
 
-    // Prepare screen
-    myOled.fillScreen(BLACK); //@ fills the OLED screen with black pixels
-    myOled.setTextSize(1); //@ Set the text size on the OLED
-    myOled.setTextColor(WHITE, BLACK);
+  initExtInt();
+  initOled();
+  initTimer();
+	WyzBeeGpio_InitIn(10,  0);
+	WyzBeeGpio_InitOut(12,  1);
 
-    WyzBeeGpio_InitIn(10,  0);
-    WyzBeeGpio_InitOut(12,  1);
+  c += sprintf(buf+c, "ext: %3d\n", extIntCount);
+  c += sprintf(buf+c, "val: %3d\n", Dt_ReadCurCntVal(Dt_Channel0));
+  for(int i = 0; i < NUM_INTERVALS; i++)
+    c += sprintf(buf+c, "%2d: %5d     \n", i, intervals[(lastInterval+i)%NUM_INTERVALS]);
 
-    char buf[128];
-    int c = 0;
+  oled.setCursor(0,0);
+  oled.writeString(buf, c);
+  c = 0;
+	
+	setColor(G);
+  while(1)
+  {
+		ir = WyzBeeGpio_Get(10);
+		WyzBeeGpio_Put(GPIO_2, ir); //GPIO_2 = PIN 4 = PORT P12
 
-    uint8_t ir;
-    while(1) {
-        ir = WyzBeeGpio_Get(10);
-        WyzBeeGpio_Put(GPIO_2, ir); //GPIO_2 = PIN 4 = PORT P12
-        setColor(!ir);
-    }
+    if(!!WyzBeeGpio_Get(4E))
+      continue;
+
+		setColor(G_OFF);
+		setColor(R);
+    c += sprintf(buf+c, "ext: %3d\n", extIntCount);
+    c += sprintf(buf+c, "val: %3d\n", Dt_ReadCurCntVal(Dt_Channel0));
+    for(int i = 0; i < NUM_INTERVALS; i++)
+      c += sprintf(buf+c, "%2d: %4d\n", i, intervals[(lastInterval+i)%NUM_INTERVALS]);
+
+    oled.setCursor(0,0);
+    oled.writeString(buf, c);
+    c = 0;
+		setColor(R_OFF);
+		setColor(G);
+  }
+
 }
 
 
-void setColor(int color)
-{
-    WyzBeeGpio_Init(GPIO_LED2,GPIO_OUTPUT,GPIO_HIGH);
-    WyzBeeGpio_Init(GPIO_LED3,GPIO_OUTPUT,GPIO_HIGH);
-    WyzBeeGpio_Init(GPIO_LED4,GPIO_OUTPUT,GPIO_HIGH);
-    int ms=50;
-    for(int i=0; i < 100*ms; i++);
-    switch(color) {
-        case 0:
-            /*Toggling Red LED*/
-            WyzBeeGpio_Init(GPIO_LED2,GPIO_OUTPUT,GPIO_LOW);
-            break;
 
-        case 1:
-            /*Toggling Green LED*/
-            WyzBeeGpio_Init(GPIO_LED3,GPIO_OUTPUT,GPIO_LOW);
-            break;
-        
-        case 2:
-            /*Toggling Blue LED*/
-            WyzBeeGpio_Init(GPIO_LED4,GPIO_OUTPUT,GPIO_LOW);
-            break;
-        
-        // SHOULD NEVER HAPPEN
-        default:
-            WyzBeeGpio_Init(GPIO_LED2,GPIO_OUTPUT,GPIO_LOW);
-            WyzBeeGpio_Init(GPIO_LED3,GPIO_OUTPUT,GPIO_LOW);
-            WyzBeeGpio_Init(GPIO_LED4,GPIO_OUTPUT,GPIO_LOW);
-    }
-    for(int i=0; i < 100*ms; i++);
-}
+
+
+
 
