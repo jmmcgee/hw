@@ -14,7 +14,6 @@
 *.d
 *.lst
 *.map
-*.s
 *.axf       
 *.obj       
 *.o
