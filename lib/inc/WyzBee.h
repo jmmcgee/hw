@@ -45,9 +45,10 @@
 #define ENABLE              1u						// Enable
 #define DISABLE             0u						// Disable
 
-#define TRUE				1u						// True
-#define FALSE				0u						// False
-
+#ifndef TRUE
+    #define TRUE				1u						// True
+    #define FALSE				0u						// False
+#endif
 
 /*
 *********************************************************************************************************
