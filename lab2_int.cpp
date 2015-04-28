@@ -90,8 +90,9 @@ void extInt()
 		lastTime = time;
 
     extIntCount++;
-    ++lastInterval %= NUM_INTERVALS;
-		flag=1;
+    if(lastInterval < NUM_INTERVALS)
+        ++lastInterval;
+    flag=1;
   }
   else
   {
@@ -158,4 +159,19 @@ void setColor(uint8_t color, uint32_t delay)
       break;
   }
   for(int i=0; i < 100*ms; i++);
+}
+
+interval_t interperetInterval(uint32_t interval)
+{
+	interval_t val = LONG;
+	float ratio = (float)interval / 12000.0;
+	float tolerance = 0.1;
+	
+	if(ratio > (1.0 - tolerance) && ratio < (1.0 + tolerance))
+		val = LOW;
+	else if(ratio > (1.5 - tolerance) && ratio < (1.5 + tolerance))
+		val = HIGH;
+	else if(ratio > (2.0 - tolerance) && ratio < (2.0 + tolerance))
+		val = BREAK;
+	return val;
 }

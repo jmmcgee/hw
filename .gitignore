@@ -6,6 +6,7 @@
 *.htm
 *.uvgui.*
 *.uvguix.*
+*.uvopt
 
 *.axf
 *.dep
