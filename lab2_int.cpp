@@ -14,9 +14,6 @@
 
 #include <timetick.h>
 
-
-volatile uint32_t timerCount = 0;
-volatile uint32_t extIntCount = 0;
 volatile uint32_t intervals[NUM_INTERVALS] = {0};
 volatile uint32_t lastInterval = 0;
 volatile uint32_t lastTime = 0;
@@ -52,8 +49,6 @@ int initOled()
 
 int initExtInt()
 {
-  extIntCount  = 0;
-
   //setup an IR interrupt
   WyzBee_PDL_ZERO(WyzBeeExtIntConfig);                      // zero struct
   WyzBeeExtIntConfig.abEnable[EXT_PORT] = FALSE;            // INT2 ???
@@ -73,7 +68,6 @@ int initTimer()
   dt_Internal.u8PrescalerDiv = Dt_PrescalerDiv16;
   dt_Internal.u8CounterSize =  Dt_CounterSize32;
 
-  timerCount = 0;
   err = Dt_Init(&dt_Internal,Dt_Channel0);
 	err = Dt_EnableCount(Dt_Channel0);
 }
@@ -176,59 +170,164 @@ interval_t interperetInterval(uint32_t interval)
 
 interval_t nextBit()
 {
+  if(pos == lastInterval)
+    return NOT_READY;
 	interval_t bit = interperetInterval(intervals[pos]);
 	++pos %= NUM_INTERVALS;
 	return bit;
 }
 
-uint8_t readByte()
+uint8_t nextByte()
 {
 	interval_t bit = LONG;
 	uint8_t code = 0;
-	key_t key = NONE;
-	
-	if((bit = nextBit()) != BREAK)
-		return NONE;
 
 	// read code
+  
 	for(int i = 0; i < 8; i++) {
 		if( (bit = nextBit()) == LONG)
 			break;
 		else if(bit == LOW)
-			code = (code << 1) & 0x00000000;
+			code = (code << 1) | 0x00000000;
 		else if(bit == HIGH)
-			code = (code << 1) & 0x00000001;
+			code = (code << 1) | 0x00000001;
 	} // read code
 	
 	return code;
 }
 
-key_t readInput()
+char readInput()
 {
 	uint32_t code = 0x00000000;
 	key_t key = NONE;
+  char val = 0;
 
-	code = (code << 8) & readByte();
-	code = (code << 8) & readByte();
-	// switch code
-	switch(code) {
-		KEY_0:
-		KEY_1:
-		KEY_2:
-		KEY_3:
-		KEY_4:
-		KEY_5:
-		KEY_6:
-		KEY_7:
-		KEY_8:
-		KEY_9:
-			key = (key_t)code;
-			break;
+  switch(nextByte())
+  {
+    case 0x28:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x13:
+              val = '7';
+              break;
+          }
+          break;
+      }
+      break;
 
-		NONE:
-		default:
-			key = NONE;
-	} // switch code
 
-	return key;
+    case 0x2a:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x09:
+              val = '8';
+              break;
+          }
+          break;
+      }
+      break;
+
+    case 0x50:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x10:
+              val = '1';
+              break;
+          }
+          break;
+      }
+      break;
+
+    case 0x52:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x11:
+              val = '5';
+              break;
+
+            case 0x12:
+              val = '3';
+              break;
+          }
+          break;
+      }
+      break;
+
+    case 0x54:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x12:
+              val = '2';
+              break;
+          }
+          break;
+      }
+      break;
+
+
+    case 0x56:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x08:
+              val = '4';
+              break;
+
+            case 0x13:
+              val = '6';
+              break;
+          }
+          break;
+      }
+      break;
+
+    case 0x58:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x18:
+              val = '9';
+              break;
+          }
+          break;
+      }
+      break;
+
+    case 0x5c:
+      switch(nextByte())
+      {
+        case 0x00:
+          switch(nextByte())
+          {
+            case 0x1a:
+              val = '0';
+              break;
+          }
+          break;
+      }
+      break;
+  } // switch code
+
+  if(val == 0)
+    val = -1;
+	return val;
 }
