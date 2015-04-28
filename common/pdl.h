@@ -692,8 +692,8 @@ extern "C" {
     #define MFS2_TX_IRQHandler(void)           IRQ065_Handler(void) ///< Multi Function Serial Reception/Status Ch. 2
     #define MFS3_RX_IRQHandler(void)           IRQ066_Handler(void) ///< Multi Function Serial Reception Ch. 3
     #define MFS3_TX_IRQHandler(void)           IRQ067_Handler(void) ///< Multi Function Serial Reception/Status Ch. 3
-    #define MFS4_RX_IRQHandler(void)           IRQ068_Handler(void) ///< Multi Function Serial Reception Ch. 4
-    #define MFS4_TX_IRQHandler(void)           IRQ069_Handler(void) ///< Multi Function Serial Reception/Status Ch. 4
+   // #define MFS4_RX_IRQHandler(void)           IRQ068_Handler(void) ///< Multi Function Serial Reception Ch. 4
+    //#define MFS4_TX_IRQHandler(void)           IRQ069_Handler(void) ///< Multi Function Serial Reception/Status Ch. 4
     #define MFS5_RX_IRQHandler(void)           IRQ070_Handler(void) ///< Multi Function Serial Reception Ch. 5
     #define MFS5_TX_IRQHandler(void)           IRQ071_Handler(void) ///< Multi Function Serial Reception/Status Ch. 5
     #define MFS6_RX_IRQHandler(void)           IRQ072_Handler(void) ///< Multi Function Serial Reception Ch. 6

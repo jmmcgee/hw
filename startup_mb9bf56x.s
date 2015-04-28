@@ -1,49 +1,122 @@
-;*******************************************************************************
-; Copyright (C) 2013 Spansion LLC. All Rights Reserved. 
-;
-; This software is owned and published by: 
-; Spansion LLC, 915 DeGuigne Dr. Sunnyvale, CA  94088-3453 ("Spansion").
-;
-; BY DOWNLOADING, INSTALLING OR USING THIS SOFTWARE, YOU AGREE TO BE BOUND 
-; BY ALL THE TERMS AND CONDITIONS OF THIS AGREEMENT.
-;
-; This software contains source code for use with Spansion 
-; components. This software is licensed by Spansion to be adapted only 
-; for use in systems utilizing Spansion components. Spansion shall not be 
-; responsible for misuse or illegal use of this software for devices not 
-; supported herein.  Spansion is providing this software "AS IS" and will 
-; not be responsible for issues arising from incorrect user implementation 
-; of the software.  
-;
-; SPANSION MAKES NO WARRANTY, EXPRESS OR IMPLIED, ARISING BY LAW OR OTHERWISE,
-; REGARDING THE SOFTWARE (INCLUDING ANY ACOOMPANYING WRITTEN MATERIALS), 
-; ITS PERFORMANCE OR SUITABILITY FOR YOUR INTENDED USE, INCLUDING, 
-; WITHOUT LIMITATION, THE IMPLIED WARRANTY OF MERCHANTABILITY, THE IMPLIED 
-; WARRANTY OF FITNESS FOR A PARTICULAR PURPOSE OR USE, AND THE IMPLIED 
-; WARRANTY OF NONINFRINGEMENT.  
-; SPANSION SHALL HAVE NO LIABILITY (WHETHER IN CONTRACT, WARRANTY, TORT, 
-; NEGLIGENCE OR OTHERWISE) FOR ANY DAMAGES WHATSOEVER (INCLUDING, WITHOUT 
-; LIMITATION, DAMAGES FOR LOSS OF BUSINESS PROFITS, BUSINESS INTERRUPTION, 
-; LOSS OF BUSINESS INFORMATION, OR OTHER PECUNIARY LOSS) ARISING FROM USE OR 
-; INABILITY TO USE THE SOFTWARE, INCLUDING, WITHOUT LIMITATION, ANY DIRECT, 
-; INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES OR LOSS OF DATA, 
-; SAVINGS OR PROFITS, 
-; EVEN IF SPANSION HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. 
-; YOU ASSUME ALL RESPONSIBILITIES FOR SELECTION OF THE SOFTWARE TO ACHIEVE YOUR
-; INTENDED RESULTS, AND FOR THE INSTALLATION OF, USE OF, AND RESULTS OBTAINED 
-; FROM, THE SOFTWARE.  
-;
-; This software may be replicated in part or whole for the licensed use, 
-; with the restriction that this Disclaimer and Copyright notice must be 
-; included with each copy of this software, whether used in part or whole, 
-; at all times.  
-;
+;                                    USE AGREEMENT
+; 
+; By using the program contain in this document, file location or subdirectory
+;  (the "Deliverables"), you ("Licensee" are deemed to have agreed to the terms and conditions
+; set forth below (the "AGREEMENT") with Fujitsu Semiconductor Limited ("FUJITSU"). If Licensee
+; does not agree to this AGREEMENT then Licensee shall not use the Deliverables. 
+; 
+; 1. Permitted Use
+; 
+; The Deliverables are intended for and must only be used for reference and in an evaluation
+; laboratory environment. The Deliverables are provided on an "AS-IS" basis without any charge
+; and is subject to this AGREEMENT.  FUJITSU may modify the Deliverables without notice to
+; Licensee.  It is Licensee's obligation to fully test the Deliverables in its environment and
+; to ensure proper functionality, qualification and compliance with component specifications.
+; In the event the Deliverables include open source components, the provisions of the governing
+; open source license agreement shall apply with respect to such Deliverables, and such open
+; source license agreement shall prevail over this AGREEMNT if there is any contradiction
+; between this AGREEMENT and such open source license agreement.
+; 
+; 2. Disclaimer on Use
+; 
+; FUJITSU MAKES NO WARRANTIES, EITHER EXPRESS OR IMPLIED, REGARDING THE DELIVERABLES, INCLUDING
+; BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE. 
+; 
+; FUJITSU DOES NOT WARRANT THAT THE DELIVERABLES DO NOT INFRINGE ANY THIRD PARTY’S INTELLECTUAL
+; PROPERTY RIGHTS ("IPRs"), INCLUDING BUT NOT LIMITED TO PATENTS, UTILITY MODELS, DESIGNS,
+; TRADEMARKS, TRADE SECRETS, COPYRIGHTS, AND MASK WORK RIGHTS.
+; 
+; In the event that the Deliverables infringe a third party's IPRs, it is the sole
+; responsibility of the LICENSEE to obtain necessary licenses to continue the usage of the
+; Deliverable and to pay any and all damages for its use of the Deliverables.
+; 
+; FUJITSU SHALL NOT BE OBLIGATED TO MAKE ANY BUG-FIXES, UPDATES, OR MODIFICATIONS OR TO PROVIDE
+; SUPPORT WITH RESPECT TO THE DELIVERABLES. 
+; 
+; Except as otherwise expressly provided herein, nothing in this AGREEMENT shall be construed
+; as obligating FUJITSU to grant licenses for the Deliverables to LICENSEE.
+; 
+; 3. LIMITATION OF LIABILITY
+; 
+; THE DELIVERABLES ARE PROVIDED "AS-IS" FOR FREE AND IN NO EVENT WILL FUJITSU BE LIABLE FOR
+; LICENSEE’S USE OF THE DELIVERABLES. 
+; 
+; IN NO EVENT WILL FUJITSU BE LIABLE TO LICENSEE, CUSTOMERS, END USERS, OR ANY THIRD PARTIES FOR
+; ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, PUNITIVE, CONSEQUENTIAL OR SIMILAR DAMAGE OF ANY
+; KIND OR CHARACTER, WHETHER IN CONTRACT OR TORT, ARISING OUT OF OR RELATING TO THIS AGREEMENT,
+; INCLUDING WITHOUT LIMITATION, LOST REVENUE OR PROFITS, LOST DATA OR USE, DAMAGE TO EQUIPMENT,
+; DOWNTIME COSTS AND CLAIMS BY ANY THIRD PARTY, REGARDLESS OF WHETHER FUJITSU HAS BEEN ADVISED
+; OF THE POSSIBILITY OF SUCH DAMAGES AND NOTWITHSTANDING THE FAILURE OF ANY REMEDY FOR AN
+; ESSENTIAL PURPOSE.
+; 
+; ALL LIABILITIES OF FUJITSUWHETHER IN CONTRACT, TORT, OR OTHERWISE, ARISING OUT OF OR IN
+; CONNECTION WITH THIS AGREEMENT, SHALL NOT EXCEED THE TOTAL AMOUNTS PAID TO FUJITSU BY
+; LICENSEE FOR THE DELIVERABLES UNDER THIS AGREEMENT. 
+; 
+; 4. GOVERNING LAW AND ARBITRATION
+; 
+; It is expressly agreed that the validity and construction of this AGREEMENT, and performance
+; hereunder, shall be governed by the laws of Japan, without regard to its conflicts of laws
+; rules.  THE UNITED NATIONS CONVENTION ON CONTRACTS FOR THE INTERNATIONAL SALE OF GOODS AND
+; UNIFORM COMPUTER INFORMATION TRANSACTION ACT (UCITA) SHALL NOT APPLY.
+; 
+; In the event of any dispute, controversy or claim (collectively referred to as "Dispute")
+; arising out of or relating to this AGREEMENT, or the breach thereof, the parties shall use
+; their best endeavors to amicably settle any such disputes, controversies or within thirty (30)
+; days a party receives notice of a Dispute from the other party ("Complaining Party"). Any such
+; disputes, controversies or claim that cannot be settled between the parties within thirty (30)
+; days after a party received notice of the Dispute from Complaining Party, such Dispute shall
+; be finally settled under the Rules of Arbitration of the Japan Commercial Arbitration
+; Association ("Rules") by three arbitrators appointed in accordance with the said Rules.
+; The place of arbitration shall be Tokyo, Japan. The arbitration shall be conducted in English,
+; with Japanese translation used at the request of either party. The award rendered by the
+; arbitrators shall be final and binding upon both parties.
+; 
+; In addition to the remedies that parties may seek from an arbitration tribunal, each party
+; shall have the right to obtain, from a court of competent jurisdiction at any time, any and
+; all forms of equitable relief to prevent the infringement of an intellectual property right of
+; a party, including but not limited to injunctive relief and specific performance.  The seeking
+; of and/or the obtaining of such equitable relief will not be deemed to be incompatible with
+; the agreement to arbitrate.
+; 
+; 5. Indemnity 
+; 
+; Licensee will hold harmless and indemnify FUJITSU and its affiliates, officers, agents, and
+; employees from any claim, suit or action arising from or related to the use of the
+; Deliverables or violation of the terms of this Agreement, including any liability or expense
+; arising from claims, losses, damages, suits, judgments, litigation costs and attorneys' fees.
+; 
+; 6. General  
+; 
+; FUJITSU may modify this AGREEMENT and such modification will become effective 14 days after
+; the date FUJITSU provides notice of such modification to Licensee. If Licensee does not want
+; to accept any of such modifications then Licensee should discontinue the use of Deliverables
+; before the modification becomes effective.  If there is a conflict between the terms of this
+; AGREEMENT and the modified terms as made by FUJITSU, then the modified terms will control
+; for that conflict.
+; 
+; This AGREEMENT does not create any third party beneficiary rights. 
+; 
+; FUJITSU If you do not comply with these terms, and we don't take action right away, this
+; doesn't mean that we are giving up any rights that we may have (such as taking action in the
+; future). 
+; 
+; Licensee shall comply with all then-current applicable laws, regulations and other legal
+; requirements in its performance in connection with this AGREEMENT, including without
+; limitation, all applicable export control laws, rules and regulations of the United States,
+; Japan and any other relevant countries.
+; 
+; If any proper arbitration tribunal or court determines that a term in this AGREEMENT term is
+; not enforceable, then this determination will not affect any other terms in this AGREEMENT. 
+; 
+; The failure by FUJITSU to enforce or exercise any rights under or in connection with any term
+; and/or condition of this AGREEMENT shall not be construed as constituting a waiver of such
+; rights.
 
 ; Stack Configuration
 ;  Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
 
-
-Stack_Size      EQU     0x00000800
+Stack_Size      EQU     0x00000200
 
                 AREA    STACK, NOINIT, READWRITE, ALIGN=3
 Stack_Mem       SPACE   Stack_Size
@@ -71,10 +144,7 @@ __heap_limit
                 EXPORT  __Vectors
                 EXPORT  __Vectors_End
                 EXPORT  __Vectors_Size
-				IMPORT  SysTick_Handler
-				;IMPORT  EXINT7_IRQHandler
-				;IMPORT  EXINT8_IRQHandler
-					
+						;IMPORT  TimeTick_Increment
 
 __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler             ; Reset Handler
@@ -92,7 +162,7 @@ __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     0                         ; Reserved
                 DCD     PendSV_Handler            ; PendSV Handler
                 DCD     SysTick_Handler           ; SysTick Handler
-				;DCD     TimeTick_Increment         ; SysTick Handler
+						;DCD     TimeTick_Increment         ; SysTick Handler
 
 ; Numbered IRQ handler vectors				
 				
@@ -150,8 +220,7 @@ __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     WC_IRQHandler
                 DCD     EXTBUS_ERR_Handler
                 DCD     RTC_IRQHandler
-                ;DCD     EXTINT8_IRQHandler
-				;DCD     EXINT8_IRQHandler
+                DCD     EXTINT8_IRQHandler
                 DCD     EXTINT9_IRQHandler
                 DCD     EXTINT10_IRQHandler
                 DCD     EXTINT11_IRQHandler
@@ -242,10 +311,10 @@ Reset_Handler   PROC
                 IMPORT  SystemInit
                 IMPORT  __main
 
-;                LDR.W R0, =0xE000ED88            ; CPACR is located at address 0xE000ED88
-;                LDR R1, [R0]                     ; Read CPACR
-;                ORR R1, R1, #(0xF << 20)         ; Set bits 20-23 to enable CP10 and CP11 coprocessors
-;                STR R1, [R0]                     ; Write back the modified value to the CPACR
+                LDR.W R0, =0xE000ED88            ; CPACR is located at address 0xE000ED88
+                LDR R1, [R0]                     ; Read CPACR
+                ORR R1, R1, #(0xF << 20)         ; Set bits 20-23 to enable CP10 and CP11 coprocessors
+                STR R1, [R0]                     ; Write back the modified value to the CPACR
 
                 LDR     R0, =SystemInit
                 BLX     R0
@@ -293,10 +362,10 @@ PendSV_Handler  PROC
                 EXPORT  PendSV_Handler            [WEAK]
                 B       .
                 ENDP
-;SysTick_Handler PROC
- ;               EXPORT  SysTick_Handler           [WEAK]
-  ;              B       .
-   ;             ENDP
+SysTick_Handler PROC
+                EXPORT  SysTick_Handler           [WEAK]
+                B       .
+                ENDP
 
 Default_Handler PROC
 
@@ -351,7 +420,7 @@ Default_Handler PROC
                 EXPORT  WC_IRQHandler	          [WEAK]
                 EXPORT  EXTBUS_ERR_Handler	          [WEAK]
                 EXPORT  RTC_IRQHandler	          [WEAK]
-                ;EXPORT  EXTINT8_IRQHandler	          [WEAK]
+                EXPORT  EXTINT8_IRQHandler	          [WEAK]
                 EXPORT  EXTINT9_IRQHandler	          [WEAK]
                 EXPORT  EXTINT10_IRQHandler	          [WEAK]
                 EXPORT  EXTINT11_IRQHandler	          [WEAK]
@@ -479,7 +548,7 @@ DT1_2_IRAHandler
 WC_IRQHandler
 EXTBUS_ERR_Handler
 RTC_IRQHandler
-;EXTINT8_IRQHandler
+EXTINT8_IRQHandler
 EXTINT9_IRQHandler
 EXTINT10_IRQHandler
 EXTINT11_IRQHandler
