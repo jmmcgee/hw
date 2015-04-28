@@ -6,137 +6,139 @@
 
 /** VM Thread API **/
 
-volatile TVMTick sleepCounter = 0;
+extern "C" {
+  volatile TVMTick sleepCounter = 0;
 
-void MachineAlarmCallback(void *calldata);
+  void MachineAlarmCallback(void *calldata);
 
-TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
-{
-  MachineInitialize(machinetickms);
+  TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
+  {
+    MachineInitialize(machinetickms);
+    MachineEnableSignals();
+    MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
-  MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
+    TVMMainEntry vmmain = VMLoadModule(argv[0]);
+    if (!vmmain) return VM_STATUS_FAILURE;
 
-  TVMMainEntry vmmain = VMLoadModule(argv[0]);
-  if (!vmmain) return VM_STATUS_FAILURE;
+    vmmain(argc,argv);
 
-  vmmain(argc,argv);
+    MachineTerminate();
 
-  MachineTerminate();
+    return VM_STATUS_SUCCESS;
+  }
 
-  return VM_STATUS_SUCCESS;
-}
+  TVMStatus VMThreadCreate(TVMThreadEntry entry, void *param,
+      TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadIDRef tid)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadCreate(TVMThreadEntry entry, void *param,
-    TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadIDRef tid)
-{
-  return 0;
-}
+  TVMStatus VMThreadDelete(TVMThreadID thread)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadDelete(TVMThreadID thread)
-{
-  return 0;
-}
+  TVMStatus VMThreadActivate(TVMThreadID thread)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadActivate(TVMThreadID thread)
-{
-  return 0;
-}
+  TVMStatus VMThreadTerminate(TVMThreadID thread)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadTerminate(TVMThreadID thread)
-{
-  return 0;
-}
+  TVMStatus VMThreadID(TVMThreadIDRef threadref)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadID(TVMThreadIDRef threadref)
-{
-  return 0;
-}
+  TVMStatus VMThreadState(TVMThreadID thread, TVMThreadStateRef stateref)
+  {
+    return 0;
+  }
 
-TVMStatus VMThreadState(TVMThreadID thread, TVMThreadStateRef stateref)
-{
-  return 0;
-}
+  TVMStatus VMThreadSleep(TVMTick tick)
+  {
+    if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-TVMStatus VMThreadSleep(TVMTick tick)
-{
-  if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
+    sleepCounter = tick;
 
-  sleepCounter = tick;
+    while(sleepCounter);
 
-  while(sleepCounter);
-
-  return VM_STATUS_SUCCESS;
-}
-
-
-/** VM Mutex API **/
+    return VM_STATUS_SUCCESS;
+  }
 
 
-TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
-{
-  return 0;
-}
-
-TVMStatus VMMutexDelete(TVMMutexID mutex)
-{
-  return 0;
-}
-
-TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
-{
-  return 0;
-}
-
-TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
-{
-  return 0;
-}
-
-TVMStatus VMMutexRelease(TVMMutexID mutex)
-{
-  return 0;
-}
+  /** VM Mutex API **/
 
 
-/** VM FILE OPEN API **/
+  TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
+  {
+    return 0;
+  }
+
+  TVMStatus VMMutexDelete(TVMMutexID mutex)
+  {
+    return 0;
+  }
+
+  TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
+  {
+    return 0;
+  }
+
+  TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
+  {
+    return 0;
+  }
+
+  TVMStatus VMMutexRelease(TVMMutexID mutex)
+  {
+    return 0;
+  }
 
 
-TVMStatus VMFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
-{
-  return 0;
-}
+  /** VM FILE OPEN API **/
 
-TVMStatus VMFileClose(int filedescriptor)
-{
-  return 0;
-}
 
-TVMStatus VMFileRead(int filedescriptor, void *data, int *length)
-{
-  return 0;
-}
+  TVMStatus VMFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
+  {
+    return 0;
+  }
 
-TVMStatus VMFileWrite(int filedescriptor, void *data, int *length)
-{
-  ssize_t bytes_written;
+  TVMStatus VMFileClose(int filedescriptor)
+  {
+    return 0;
+  }
 
-  if (!data || !length) return VM_STATUS_ERROR_INVALID_PARAMETER;
+  TVMStatus VMFileRead(int filedescriptor, void *data, int *length)
+  {
+    return 0;
+  }
 
-  bytes_written = write(filedescriptor, data, *length);
+  TVMStatus VMFileWrite(int filedescriptor, void *data, int *length)
+  {
+    ssize_t bytes_written;
 
-  if (bytes_written == -1) return VM_STATUS_FAILURE;
+    if (!data || !length) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-  *length = *length - bytes_written;
+    bytes_written = write(filedescriptor, data, *length);
 
-  return VM_STATUS_SUCCESS;
-}
+    if (bytes_written == -1) return VM_STATUS_FAILURE;
 
-TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
-{
-  return 0;
-}
+    *length = *length - bytes_written;
 
-void MachineAlarmCallback(void *calldata)
-{
-  if (sleepCounter) --sleepCounter;
+    return VM_STATUS_SUCCESS;
+  }
+
+  TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
+  {
+    return 0;
+  }
+
+  void MachineAlarmCallback(void *calldata)
+  {
+    if (sleepCounter) --sleepCounter;
+  }
 }
