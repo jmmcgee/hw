@@ -29,7 +29,10 @@ extern "C" {
       TVMThreadState state;
 
       ThreadControlBlock(bool ismainthread);
-      ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio);
+      ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id);
+
+      TVMThreadID getId();
+      TVMThreadState getState();
 
       void decrementSleepCounter();
   };
@@ -37,6 +40,7 @@ extern "C" {
   class ThreadManager {
     public:
       ThreadControlBlock *currentthread;
+      unsigned int threadcounter;
 
       std::deque<ThreadControlBlock*> threadqueue_ready_low;
       std::deque<ThreadControlBlock*> threadqueue_ready_med;
@@ -45,6 +49,15 @@ extern "C" {
       std::deque<ThreadControlBlock*> threadqueue_sleeping;
       std::deque<ThreadControlBlock*> threadqueue_waiting;
       std::deque<ThreadControlBlock*> threadqueue_dead;
+
+      ThreadManager();
+
+      TVMThreadID getNewId();
+
+      void addThread(ThreadControlBlock *tcb_ptr);
+      ThreadControlBlock* findThread(TVMThreadID id);
+
+      TVMStatus activateThread(TVMThreadID id);
 
       void decrementSleepcounters();
   };
@@ -82,7 +95,14 @@ extern "C" {
   TVMStatus VMThreadCreate(TVMThreadEntry entry, void *param,
       TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadIDRef tid)
   {
-    return 0;
+    if (!entry || !tid) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    *tid = threadmanager.getNewId();
+    ThreadControlBlock *tcb_ptr = new ThreadControlBlock(entry, param, memsize, prio, *tid);
+
+    threadmanager.addThread(tcb_ptr);
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMThreadDelete(TVMThreadID thread)
@@ -92,7 +112,7 @@ extern "C" {
 
   TVMStatus VMThreadActivate(TVMThreadID thread)
   {
-    return 0;
+    return threadmanager.activateThread(thread);
   }
 
   TVMStatus VMThreadTerminate(TVMThreadID thread)
@@ -107,7 +127,15 @@ extern "C" {
 
   TVMStatus VMThreadState(TVMThreadID thread, TVMThreadStateRef stateref)
   {
-    return 0;
+    if (!stateref) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    ThreadControlBlock *tcb_ptr = threadmanager.findThread(thread);
+
+    if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
+
+    *stateref = tcb_ptr->getState();
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMThreadSleep(TVMTick tick)
@@ -199,25 +227,92 @@ extern "C" {
   }
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
-    ismainthread(ismainthread)
-    prio(VM_THREAD_PRIORITY_NORMAL)
+    ismainthread(ismainthread),
+    id(0),
+    prio(VM_THREAD_PRIORITY_NORMAL),
+    state(VM_THREAD_STATE_RUNNING)
   {
 
   }
 
-  ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio):
+  ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id):
     ismainthread(false),
     entry(entry),
     param(param),
     stacksize(memsize),
-    prio(prio)
+    id(id),
+    prio(prio),
+    state(VM_THREAD_STATE_DEAD)
   {
 
+  }
+
+  TVMThreadID ThreadControlBlock::getId()
+  {
+    return id;
+  }
+
+  TVMThreadState ThreadControlBlock::getState()
+  {
+    return state;
   }
 
   void ThreadControlBlock::decrementSleepCounter()
   {
     if (sleepcounter) --sleepcounter;
+  }
+
+  ThreadManager::ThreadManager():
+    threadcounter(0)
+  {
+    currentthread = new ThreadControlBlock(true);
+  }
+
+  TVMThreadID ThreadManager::getNewId()
+  {
+    return ++threadcounter;
+  }
+
+  void ThreadManager::addThread(ThreadControlBlock* tcb_ref)
+  {
+    threadqueue_dead.push_back(tcb_ref);
+  }
+
+  ThreadControlBlock* ThreadManager::findThread(TVMThreadID id)
+  {
+    std::deque<ThreadControlBlock*>::iterator tcb_it;
+
+    for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    for (tcb_it = threadqueue_waiting.begin(); tcb_it != threadqueue_waiting.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    for (tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    for (tcb_it = threadqueue_ready_low.begin(); tcb_it != threadqueue_ready_low.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    for (tcb_it = threadqueue_ready_med.begin(); tcb_it != threadqueue_ready_med.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    for (tcb_it = threadqueue_ready_high.begin(); tcb_it != threadqueue_ready_high.end(); ++tcb_it)
+      if ((*tcb_it)->getId() == id) return *tcb_it;
+
+    return 0;
+  }
+
+  TVMStatus ThreadManager::activateThread(TVMThreadID id)
+  {
+    ThreadControlBlock* tcb_ptr = findThread(id);
+
+    if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
+    if (tcb_ptr->getState() != VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
+
+    // Set state, create context, schedule into ready queue
+
+    return VM_STATUS_SUCCESS;
   }
 
   void ThreadManager::decrementSleepcounters()
