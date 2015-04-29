@@ -42,6 +42,7 @@ extern "C" {
       SMachineContextRef getMcnxtRef();
 
       void activate();
+      void setState(TVMThreadState state);
       void setSleepcounter(TVMTick ticks);
       TVMTick getSleepcounter();
       void updateSleepcounter();
@@ -302,7 +303,12 @@ extern "C" {
     MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
   }
 
-  void ThreadControlBlock::setSleepcounter(TVMTick ticks)
+  void ThreadControlBlock::setState(TVMThreadState state)
+  {
+    this->state = state;
+  }
+
+  voidsetSleepcounter(TVMTick ticks)
   {
     state = VM_THREAD_STATE_WAITING;
 
@@ -431,16 +437,19 @@ extern "C" {
       }
     }
 
+    currentthread->setState(VM_THREAD_STATE_RUNNING);
     MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
   }
 
   void ThreadManager::pushToSleep(ThreadControlBlock* thread)
   {
+    thread->setState(VM_THREAD_STATE_WAITING);
     threadqueue_sleeping.push_back(thread);
   }
 
   void ThreadManager::pushToReady(ThreadControlBlock* thread)
   {
+    thread->setState(VM_THREAD_STATE_READY);
     switch(thread->getPrio())
     {
       case VM_THREAD_PRIORITY_LOW:
