@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <iostream>
 
 #include <deque>
 
@@ -308,7 +309,7 @@ extern "C" {
     this->state = state;
   }
 
-  voidsetSleepcounter(TVMTick ticks)
+  void ThreadControlBlock::setSleepcounter(TVMTick ticks)
   {
     state = VM_THREAD_STATE_WAITING;
 
@@ -415,27 +416,25 @@ extern "C" {
   {
     ThreadControlBlock* oldthread = currentthread;
 
-    while(true)
+    if (!threadqueue_ready_high.empty())
     {
-      if (!threadqueue_ready_high.empty())
-      {
-        currentthread = threadqueue_ready_high.front();
-        threadqueue_ready_high.pop_front();
-        break;
-      }
-      if (!threadqueue_ready_med.empty())
-      {
-        currentthread = threadqueue_ready_med.front();
-        threadqueue_ready_med.pop_front();
-        break;
-      }
-      if (!threadqueue_ready_low.empty())
-      {
-        currentthread = threadqueue_ready_low.front();
-        threadqueue_ready_low.pop_front();
-        break;
-      }
+      currentthread = threadqueue_ready_high.front();
+      threadqueue_ready_high.pop_front();
     }
+    else if (!threadqueue_ready_med.empty())
+    {
+      currentthread = threadqueue_ready_med.front();
+      threadqueue_ready_med.pop_front();
+    }
+    else if (!threadqueue_ready_low.empty())
+    {
+      currentthread = threadqueue_ready_low.front();
+      threadqueue_ready_low.pop_front();
+    }
+
+    if (oldthread == currentthread) return;
+
+    std::cout << "CONTEXT SWITCH from " << oldthread << " to " << currentthread << std::endl;
 
     currentthread->setState(VM_THREAD_STATE_RUNNING);
     MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
@@ -471,15 +470,17 @@ extern "C" {
     for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end();)
       if ((*tcb_it)->getSleepcounter())
       {
+        std::cout << "SLEPT 1 TICK, THREAD " << *tcb_it << " NOW AT " << (*tcb_it)->getSleepcounter() << std::endl;
+
         (*tcb_it)->updateSleepcounter();
         ++tcb_it;
       }
       else
       {
-        // TODO: fix seg fault
+        std::cout << "FINISHED SLEEP " << *tcb_it << std::endl;
 
         pushToReady(*tcb_it);
-        threadqueue_sleeping.erase(tcb_it++);
+        tcb_it = threadqueue_sleeping.erase(tcb_it);
       }
   }
 }
