@@ -10,6 +10,10 @@
 extern "C" {
   /** Forward Delcarations **/
 
+  typedef struct {
+    TVMThreadEntry entry;
+    void* param;
+  } skeletonCall, *skeletonCallRef;
 
   class ThreadControlBlock {
     public:
@@ -19,6 +23,7 @@ extern "C" {
 
       TVMThreadEntry entry;
       void* param;
+      skeletonCallRef call;
 
       void *stackaddr;
       TVMMemorySize stacksize;
@@ -37,6 +42,8 @@ extern "C" {
       void activate();
 
       void decrementSleepCounter();
+
+      static void skeletonEntry(void* call);
   };
 
   class ThreadManager {
@@ -56,12 +63,16 @@ extern "C" {
 
       TVMThreadID getNewId();
 
+      ThreadControlBlock* getCurrentThread();
+
       void addThread(ThreadControlBlock *tcb_ptr);
       ThreadControlBlock* findThread(TVMThreadID id);
 
       TVMStatus activateThread(TVMThreadID id);
 
       void decrementSleepcounters();
+
+
   };
 
   void MachineAlarmCallback(void *calldata);
@@ -261,16 +272,26 @@ extern "C" {
   {
     state = VM_THREAD_STATE_READY;
 
-    // TODO: write skeleton function wrapper,
-    // write struct containing actual entry point and param pointer
-    // to pass into skeleton
+    call = new skeletonCall();
+    call->entry = entry;
+    call->param = param;
 
-    // TODO: figure out how MachineCreateContext works
+    stackaddr = (void *) (new uint8_t[stacksize]);
+
+    MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
   }
 
   void ThreadControlBlock::decrementSleepCounter()
   {
     if (sleepcounter) --sleepcounter;
+  }
+
+  void ThreadControlBlock::skeletonEntry(void* call)
+  {
+    skeletonCallRef _call = (skeletonCallRef) call;
+    (_call->entry)(_call->param);
+
+    VMThreadTerminate(threadmanager.getCurrentThread()->getId());
   }
 
   ThreadManager::ThreadManager():
@@ -282,6 +303,11 @@ extern "C" {
   TVMThreadID ThreadManager::getNewId()
   {
     return ++threadcounter;
+  }
+
+  ThreadControlBlock* ThreadManager::getCurrentThread()
+  {
+    return currentthread;
   }
 
   void ThreadManager::addThread(ThreadControlBlock* tcb_ref)
@@ -321,8 +347,9 @@ extern "C" {
     if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
     if (tcb_ptr->getState() != VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
 
-    // Set state, create context, schedule into ready queue
     tcb_ptr->activate();
+
+    // TODO: schedule the thread from dead to ready
 
     return VM_STATUS_SUCCESS;
   }
