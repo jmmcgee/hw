@@ -46,22 +46,24 @@ int main(void)
     setColor(R);
 
     char key = 0;
-    if(0)
+    //if(0)
+    if(pos + 16 <= lastInterval)
     {
       key = readInput();
 
-      c += sprintf(buf+c, "%c ", key);
-      oled.setCursor(0, 0);
+      c += sprintf(buf+c, "%c", key);
+      
+      if(oled.getCursorY() > 128)
+        oled.setCursor(0, 0);
       oled.writeString(buf,c);
     }
     
-
+    if(0)
     {
       for(int i =0; i < 4; i++) {
         c += sprintf(buf+c, "%02x", nextByte());
         c += sprintf(buf+c, (i < 3 ? " " : " (%3d)\n"), pos);
       }
-      //c += sprintf(buf+c, "%02x\n", nextByte());
 
       oled.writeString(buf,c);
     }
