@@ -38,6 +38,7 @@ extern "C" {
 
       TVMThreadID getId();
       TVMThreadState getState();
+      TVMThreadPriority getPrio();
 
       void activate();
 
@@ -268,6 +269,11 @@ extern "C" {
     return state;
   }
 
+  TVMThreadPriority ThreadControlBlock::getPrio()
+  {
+    return prio;
+  }
+
   void ThreadControlBlock::activate()
   {
     state = VM_THREAD_STATE_READY;
@@ -349,7 +355,25 @@ extern "C" {
 
     tcb_ptr->activate();
 
-    // TODO: schedule the thread from dead to ready
+    std::deque<ThreadControlBlock*>::iterator tcb_it;
+    for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end() && *tcb_it != tcb_ptr; ++tcb_it);
+    threadqueue_dead.erase(tcb_it);
+
+    TVMThreadPriority prio = tcb_ptr->getPrio();
+    switch(prio)
+    {
+      case VM_THREAD_PRIORITY_LOW:
+        threadqueue_ready_low.push_back(tcb_ptr);
+        break;
+      case VM_THREAD_PRIORITY_NORMAL:
+        threadqueue_ready_med.push_back(tcb_ptr);
+        break;
+      case VM_THREAD_PRIORITY_HIGH:
+        threadqueue_ready_high.push_back(tcb_ptr);
+        break;
+      default:
+        break;
+    }
 
     return VM_STATUS_SUCCESS;
   }
