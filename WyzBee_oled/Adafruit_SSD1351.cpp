@@ -56,7 +56,10 @@ void Adafruit_SSD1351::writeString(const char* str, int32_t len)
     for(; c != '\0' && i < len; i++) {
         ptr = str+i;
         c = *ptr;
-        this->write(c);
+        if(c == '\n')
+          this->setCursor(0, (this->getCursorY()+textsize*8) % 128);
+        else
+          this->write(c);
     }
 }
 

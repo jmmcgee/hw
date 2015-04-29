@@ -83,7 +83,9 @@ void extInt()
     uint32_t time = Dt_ReadCurCntVal(Dt_Channel0);
     intervals[lastInterval] = time < lastTime ? lastTime - time: lastTime + (4294967295u - time);
 		lastTime = time;
-    ++lastInterval %= NUM_INTERVALS;
+    
+    if(++lastInterval >= NUM_INTERVALS)
+      lastInterval -= NUM_INTERVALS;
     flag=1;
   }
   else
@@ -173,7 +175,9 @@ interval_t nextBit()
   if(pos == lastInterval)
     return NOT_READY;
 	interval_t bit = interperetInterval(intervals[pos]);
-	++pos %= NUM_INTERVALS;
+  
+  if(++pos >= NUM_INTERVALS)
+    pos -= NUM_INTERVALS;
 	return bit;
 }
 
@@ -198,10 +202,8 @@ uint8_t nextByte()
 
 char readInput()
 {
-	uint32_t code = 0x00000000;
-	key_t key = NONE;
   char val = 0;
-
+  
   switch(nextByte())
   {
     case 0x28:
