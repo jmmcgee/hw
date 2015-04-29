@@ -34,9 +34,11 @@ void game()
       oled.setCursor(0,0);
       oled.writeString(buf, c);
 
-      while(!readyByte()  || bytesReady < 3 || key == 0) {
+      do {
+        readyByte();
         key = readInput();
-      }
+      } while(bytesReady < 3 || key == 0);
+
       state = 1;
       break;
 
@@ -73,13 +75,61 @@ void game()
       int num = ((RAND_MAX - rand())/(float)RAND_MAX)*max;
       c += sprintf(buf+c, "The answer was %d.\n", num);
       oled.writeString(buf, c);
-      while(!readyByte()  || bytesReady < 3 || key == 0) {
+      do {
+        readyByte();
         key = readInput();
-      }
+      } while(bytesReady < 3 || key == 0);
 
-     state = 0;
+        state = 0;
       delay(100);
       break;
 
   }
+}
+
+void game2()
+{
+  static int16_t xpos = 64, ypos = 64;
+  int16_t last_xpos = xpos, last_ypos = ypos;
+
+  switch(key)
+  {
+    case '1':
+      xpos -= 1;
+      ypos -= 1;
+      break;
+    case '2':
+      ypos -= 1;
+      break;
+    case '3':
+      xpos += 1;
+      ypos -= 1;
+      break;
+    case '4':
+      xpos -= 1;
+      break;
+    case '5':
+      break;
+    case '6':
+      xpos += 1;
+      break;
+    case '7':
+      xpos -= 1;
+      ypos += 1;
+      break;
+    case '8':
+    case '0':
+      ypos += 1;
+      break;
+    case '9':
+      xpos += 1;
+      ypos += 1;
+      break;
+
+    default:
+      break;
+  }
+  drawPixel(xpos,  ypos, WHITE);
+  drawPixel(last_xpos, last_ypos, BLACK);
+  key = ' ';
 }

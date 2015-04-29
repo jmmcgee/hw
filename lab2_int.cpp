@@ -23,6 +23,8 @@ volatile uint8_t bytes[NUM_BYTES] = {0};
 volatile uint32_t bytePos = 0;
 volatile uint32_t bytesReady = 0;
 
+volatile char key = 0;
+
 static WyzBee_exint_config_t WyzBeeExtIntConfig;
 
 Adafruit_SSD1351 oled = Adafruit_SSD1351(); //@  OLED class variable
@@ -224,11 +226,17 @@ uint8_t nextByte()
 char readInput()
 {
   char val = 0;
+  int count = 1;
+  uint8_t byte1, byte2;
 
-  switch(nextByte())
+  byte1 = nextByte();
+  byte2 = nextByte();
+
+SWITCH:
+  switch(byte1)
   {
     case 0x28:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x13:
           val = '7';
@@ -238,7 +246,7 @@ char readInput()
 
 
     case 0x2a:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x49:
           val = '8';
@@ -246,8 +254,17 @@ char readInput()
       }
       break;
 
+    case 0x49:
+      switch(byte2)
+      {
+        case 0x2a:
+          val = '8';
+          break;
+      }
+      break;
+
     case 0x50:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x10:
           val = '1';
@@ -256,7 +273,7 @@ char readInput()
       break;
 
     case 0x52:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x91:
           val = '5';
@@ -269,7 +286,7 @@ char readInput()
       break;
 
     case 0x54:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x12:
           val = '2';
@@ -279,7 +296,7 @@ char readInput()
 
 
     case 0x56:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0xc8:
           val = '4';
@@ -292,7 +309,7 @@ char readInput()
       break;
 
     case 0x58:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x18:
           val = '9';
@@ -301,7 +318,7 @@ char readInput()
       break;
 
     case 0x5c:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x1a:
           val = '0';
@@ -310,7 +327,7 @@ char readInput()
       break;
     
     case 0xd2:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x91:
           val = '5';
@@ -318,19 +335,26 @@ char readInput()
       break;
  
     case 0xd6:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x93:
           val = '6';
       }
 
     case 0xe8:
-      switch(nextByte())
+      switch(byte2)
       {
         case 0x13:
           val = '7';
       }
   } // switch code
+
+  if(val == 0 && count) {
+    byte1 = byte2;
+    byte2 = nextByte();
+    count--;
+    goto SWITCH;
+  }
 
   return val;
 }

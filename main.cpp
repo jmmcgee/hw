@@ -23,7 +23,7 @@
 int screen = 0;
 char buf[336];
 int c = 0;
-char key = 0;
+char lastKey = 0;
 uint8_t ir;
 
 int main(void)
@@ -49,6 +49,8 @@ int main(void)
 
     char key = 0;
     int block = 2;
+
+    // diagnose with hex
     if(block == 0 && bytesReady > 3)
     {
       setColor(R);
@@ -73,6 +75,7 @@ int main(void)
       setColor(R_OFF);
     }
 
+    // print hex
     else if(block == 1)
     {
       for(int i =0; i < 4; i++) {
@@ -85,7 +88,15 @@ int main(void)
 
     else if(block == 2)
     {
-      game();
+      if(bytesReady > 3) {
+        key = readInput();
+      }
+      if(key == 0 || key == ' ' || key == lastKey)
+        continue;
+      lastKey = key;
+
+      oled.setCursor(0,0);
+      oled.write(key);
     }
 
     setColor(G);

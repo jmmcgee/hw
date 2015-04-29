@@ -3,4 +3,6 @@
 
 void intro();
 void game();
+
+void game2();
 #endif

@@ -28,6 +28,8 @@ extern volatile uint8_t bytes[NUM_BYTES];
 extern volatile uint32_t bytePos;
 extern volatile uint32_t bytesReady;
 
+exter volatile char key;
+
 extern Adafruit_SSD1351 oled; //@  OLED class variable
 
 
