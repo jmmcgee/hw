@@ -39,6 +39,7 @@ extern "C" {
       TVMThreadID getId();
       TVMThreadState getState();
       TVMThreadPriority getPrio();
+      SMachineContextRef getMcnxtRef();
 
       void activate();
       void setSleepcounter(TVMTick ticks);
@@ -72,9 +73,9 @@ extern "C" {
 
       TVMStatus activateThread(TVMThreadID id);
 
-      void replaceCurrentThreadReady();
-      void pushCurrentThreadSleep();
-      void pushCurrentThreadReady();
+      void replaceThread();
+      void pushToSleep(ThreadControlBlock* thread);
+      void pushToReady(ThreadControlBlock* thread);
 
       void updateSleepingThreads();
 
@@ -159,14 +160,12 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    if (tick == VM_TIMEOUT_IMMEDIATE)
-    {
-      (void)0; // TODO: yields the remainder of its processing quantum to the next ready process of equal priority.
-      return VM_STATUS_SUCCESS;
-    }
+    threadmanager.getCurrentThread()->setSleepcounter(tick);
+    threadmanager.pushToSleep(threadmanager.getCurrentThread());
 
-    threadmanager.pushCurrentThreadSleep();
-    threadmanager.replaceCurrentThreadReady();
+    if (tick == VM_TIMEOUT_IMMEDIATE) threadmanager.replaceThread();
+
+    while(threadmanager.getCurrentThread()->getSleepcounter());
 
     return VM_STATUS_SUCCESS;
   }
@@ -246,6 +245,7 @@ extern "C" {
   void MachineAlarmCallback(void *calldata)
   {
     threadmanager.updateSleepingThreads();
+    threadmanager.replaceThread();
   }
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
@@ -282,6 +282,11 @@ extern "C" {
   TVMThreadPriority ThreadControlBlock::getPrio()
   {
     return prio;
+  }
+
+  SMachineContextRef ThreadControlBlock::getMcnxtRef()
+  {
+    return &mcnxt;
   }
 
   void ThreadControlBlock::activate()
@@ -400,8 +405,10 @@ extern "C" {
     return VM_STATUS_SUCCESS;
   }
 
-  void ThreadManager::replaceCurrentThreadReady()
+  void ThreadManager::replaceThread()
   {
+    ThreadControlBlock* oldthread = currentthread;
+
     while(true)
     {
       if (!threadqueue_ready_high.empty())
@@ -424,26 +431,26 @@ extern "C" {
       }
     }
 
-    // TODO: perform context switching
+    MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
   }
 
-  void ThreadManager::pushCurrentThreadSleep()
+  void ThreadManager::pushToSleep(ThreadControlBlock* thread)
   {
-    threadqueue_sleeping.push_back(currentthread);
+    threadqueue_sleeping.push_back(thread);
   }
 
-  void ThreadManager::pushCurrentThreadReady()
+  void ThreadManager::pushToReady(ThreadControlBlock* thread)
   {
-    switch(currentthread->getPrio())
+    switch(thread->getPrio())
     {
       case VM_THREAD_PRIORITY_LOW:
-        threadqueue_ready_low.push_back(currentthread);
+        threadqueue_ready_low.push_back(thread);
         break;
       case VM_THREAD_PRIORITY_NORMAL:
-        threadqueue_ready_med.push_back(currentthread);
+        threadqueue_ready_med.push_back(thread);
         break;
       case VM_THREAD_PRIORITY_HIGH:
-        threadqueue_ready_high.push_back(currentthread);
+        threadqueue_ready_high.push_back(thread);
         break;
       default:
         break;
@@ -452,7 +459,16 @@ extern "C" {
 
   void ThreadManager::updateSleepingThreads()
   {
-    for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end(); ++tcb_it)
-      (*tcb_it)->updateSleepcounter();
+    for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end();)
+      if ((*tcb_it)->getSleepcounter())
+      {
+        (*tcb_it)->updateSleepcounter();
+        ++tcb_it;
+      }
+      else
+      {
+        pushToReady(*tcb_it);
+        threadqueue_sleeping.erase(tcb_it++);
+      }
   }
 }
