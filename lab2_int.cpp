@@ -19,6 +19,10 @@ volatile uint32_t lastInterval = 0;
 volatile uint32_t lastTime = 0;
 volatile uint32_t pos = 0;
 
+volatile uint8_t bytes[NUM_BYTES] = {0};
+volatile uint32_t bytePos = 0;
+volatile uint32_t bytesReady = 0;
+
 static WyzBee_exint_config_t WyzBeeExtIntConfig;
 
 Adafruit_SSD1351 oled = Adafruit_SSD1351(); //@  OLED class variable
@@ -69,7 +73,7 @@ int initTimer()
   dt_Internal.u8CounterSize =  Dt_CounterSize32;
 
   err = Dt_Init(&dt_Internal,Dt_Channel0);
-	err = Dt_EnableCount(Dt_Channel0);
+  err = Dt_EnableCount(Dt_Channel0);
 }
 
 void extInt()
@@ -82,8 +86,8 @@ void extInt()
 
     uint32_t time = Dt_ReadCurCntVal(Dt_Channel0);
     intervals[lastInterval] = time < lastTime ? lastTime - time: lastTime + (4294967295u - time);
-		lastTime = time;
-    
+    lastTime = time;
+
     if(++lastInterval >= NUM_INTERVALS)
       lastInterval -= NUM_INTERVALS;
     flag=1;
@@ -157,65 +161,77 @@ void setColor(uint8_t color, uint32_t delay)
 
 interval_t interperetInterval(uint32_t interval)
 {
-	interval_t val = LONG;
-	double ratio = (double)interval / 12000.0;
-	double tolerance = 0.1;
-	
-	if(ratio > (1.0 - tolerance) && ratio < (1.0 + tolerance))
-		val = LOW;
-	else if(ratio > (1.5 - tolerance) && ratio < (1.5 + tolerance))
-		val = HIGH;
-	else if(ratio > (2.0 - tolerance) && ratio < (2.0 + tolerance))
-		val = BREAK;
-	return val;
+  interval_t val = LONG;
+  double ratio = (double)interval / 12000.0;
+  double tolerance = 0.1;
+
+  if(ratio > (1.0 - tolerance) && ratio < (1.0 + tolerance))
+    val = LOW;
+  else if(ratio > (1.5 - tolerance) && ratio < (1.5 + tolerance))
+    val = HIGH;
+  else if(ratio > (2.0 - tolerance) && ratio < (2.0 + tolerance))
+    val = BREAK;
+  return val;
 }
 
 interval_t nextBit()
 {
   if(pos == lastInterval)
     return NOT_READY;
-	interval_t bit = interperetInterval(intervals[pos]);
-  
+  interval_t bit = interperetInterval(intervals[pos]);
+
   if(++pos >= NUM_INTERVALS)
     pos -= NUM_INTERVALS;
-	return bit;
+  return bit;
+}
+
+int readyByte()
+{
+  interval_t bit = LONG;
+  uint8_t code = bytes[bytePos];
+
+  // read code
+  while(1) {
+    if( (bit = nextBit()) == LONG)
+      break;
+    else if(bit == LOW)
+      code = (code << 1) | 0x00000000;
+    else if(bit == HIGH)
+      code = (code << 1) | 0x00000001;
+    else if(bit == NOT_READY) {
+      bytes[bytePos] = code;
+      return 0;
+    }
+  } // read code
+
+  bytes[(bytePos+bytesReady)%NUM_BYTES] = code;
+  bytesReady++;
+  return 1;
 }
 
 uint8_t nextByte()
 {
-	interval_t bit = LONG;
-	uint8_t code = 0;
-
-	// read code
-  
-	for(int i = 0; i < 8; i++) {
-		if( (bit = nextBit()) == LONG)
-			break;
-		else if(bit == LOW)
-			code = (code << 1) | 0x00000000;
-		else if(bit == HIGH)
-			code = (code << 1) | 0x00000001;
-	} // read code
-	
-	return code;
+  if(bytesReady > 0) {
+    if(++bytePos >= NUM_BYTES)
+      bytePos -= NUM_BYTES;
+    bytesReady--;
+    return bytes[bytePos];
+  }
+  else
+    return -1;
 }
 
 char readInput()
 {
   char val = 0;
-  
+
   switch(nextByte())
   {
     case 0x28:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x13:
-              val = '7';
-              break;
-          }
+        case 0x13:
+          val = '7';
           break;
       }
       break;
@@ -224,13 +240,8 @@ char readInput()
     case 0x2a:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x09:
-              val = '8';
-              break;
-          }
+        case 0x49:
+          val = '8';
           break;
       }
       break;
@@ -238,13 +249,8 @@ char readInput()
     case 0x50:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x10:
-              val = '1';
-              break;
-          }
+        case 0x10:
+          val = '1';
           break;
       }
       break;
@@ -252,17 +258,12 @@ char readInput()
     case 0x52:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x11:
-              val = '5';
-              break;
+        case 0x91:
+          val = '5';
+          break;
 
-            case 0x12:
-              val = '3';
-              break;
-          }
+        case 0x92:
+          val = '3';
           break;
       }
       break;
@@ -270,13 +271,8 @@ char readInput()
     case 0x54:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x12:
-              val = '2';
-              break;
-          }
+        case 0x12:
+          val = '2';
           break;
       }
       break;
@@ -285,17 +281,12 @@ char readInput()
     case 0x56:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x08:
-              val = '4';
-              break;
+        case 0xc8:
+          val = '4';
+          break;
 
-            case 0x13:
-              val = '6';
-              break;
-          }
+        case 0x93:
+          val = '6';
           break;
       }
       break;
@@ -303,13 +294,8 @@ char readInput()
     case 0x58:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x18:
-              val = '9';
-              break;
-          }
+        case 0x18:
+          val = '9';
           break;
       }
       break;
@@ -317,19 +303,34 @@ char readInput()
     case 0x5c:
       switch(nextByte())
       {
-        case 0x00:
-          switch(nextByte())
-          {
-            case 0x1a:
-              val = '0';
-              break;
-          }
+        case 0x1a:
+          val = '0';
           break;
       }
       break;
+    
+    case 0xd2:
+      switch(nextByte())
+      {
+        case 0x91:
+          val = '5';
+      }
+      break;
+ 
+    case 0xd6:
+      switch(nextByte())
+      {
+        case 0x93:
+          val = '6';
+      }
+
+    case 0xe8:
+      switch(nextByte())
+      {
+        case 0x13:
+          val = '7';
+      }
   } // switch code
 
-  if(val == 0)
-    val = -1;
-	return val;
+  return val;
 }
