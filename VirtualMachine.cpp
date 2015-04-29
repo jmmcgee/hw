@@ -476,6 +476,8 @@ extern "C" {
       }
       else
       {
+        // TODO: fix seg fault
+
         pushToReady(*tcb_it);
         threadqueue_sleeping.erase(tcb_it++);
       }
