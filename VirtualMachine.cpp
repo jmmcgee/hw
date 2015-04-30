@@ -141,7 +141,11 @@ extern "C" {
 
   TVMStatus VMThreadTerminate(TVMThreadID thread)
   {
-    return threadmanager.terminateThread(thread);
+    TVMStatus terminatereturn = threadmanager.terminateThread(thread);
+
+    threadmanager.replaceThread();
+
+    return terminatereturn;
   }
 
   TVMStatus VMThreadID(TVMThreadIDRef threadref)
