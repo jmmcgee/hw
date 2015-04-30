@@ -29,7 +29,7 @@ extern "C" {
       void *stackaddr;
       TVMMemorySize stacksize;
 
-      TVMTick sleepcounter;
+      volatile TVMTick sleepcounter;
       TVMThreadID id;
       TVMThreadPriority prio;
       TVMThreadState state;
@@ -43,6 +43,8 @@ extern "C" {
       SMachineContextRef getMcnxtRef();
 
       void activate();
+      void terminate();
+      // TODO: make orthogonal ready() and sleep() methods to replace the below methods
       void setState(TVMThreadState state);
       void setSleepcounter(TVMTick ticks);
       TVMTick getSleepcounter();
@@ -74,8 +76,10 @@ extern "C" {
       ThreadControlBlock* findThread(TVMThreadID id);
 
       TVMStatus activateThread(TVMThreadID id);
+      TVMStatus terminateThread(TVMThreadID id);
 
       void replaceThread();
+      void popFromAll(ThreadControlBlock* thread);
       void pushToSleep(ThreadControlBlock* thread);
       void pushToReady(ThreadControlBlock* thread);
 
@@ -137,7 +141,7 @@ extern "C" {
 
   TVMStatus VMThreadTerminate(TVMThreadID thread)
   {
-    return 0;
+    return threadmanager.terminateThread(thread);
   }
 
   TVMStatus VMThreadID(TVMThreadIDRef threadref)
@@ -304,6 +308,14 @@ extern "C" {
     MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
   }
 
+
+  void ThreadControlBlock::terminate()
+  {
+    state = VM_THREAD_STATE_DEAD;
+
+    // TODO: free skeleton call and allocated stack
+  }
+
   void ThreadControlBlock::setState(TVMThreadState state)
   {
     this->state = state;
@@ -412,6 +424,21 @@ extern "C" {
     return VM_STATUS_SUCCESS;
   }
 
+  TVMStatus ThreadManager::terminateThread(TVMThreadID id)
+  {
+    ThreadControlBlock* tcb_ptr = findThread(id);
+
+    if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
+    if (tcb_ptr->getState() == VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
+
+    tcb_ptr->terminate();
+
+    popFromAll(tcb_ptr);
+    threadqueue_dead.push_back(tcb_ptr);
+
+    return VM_STATUS_SUCCESS;
+  }
+
   void ThreadManager::replaceThread()
   {
     ThreadControlBlock* oldthread = currentthread;
@@ -438,6 +465,11 @@ extern "C" {
 
     currentthread->setState(VM_THREAD_STATE_RUNNING);
     MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
+  }
+
+  void ThreadManager::popFromAll(ThreadControlBlock* thread)
+  {
+    // TODO: implement this
   }
 
   void ThreadManager::pushToSleep(ThreadControlBlock* thread)
@@ -470,8 +502,6 @@ extern "C" {
     for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end();)
       if ((*tcb_it)->getSleepcounter())
       {
-        std::cout << "SLEPT 1 TICK, THREAD " << *tcb_it << " NOW AT " << (*tcb_it)->getSleepcounter() << std::endl;
-
         (*tcb_it)->updateSleepcounter();
         ++tcb_it;
       }
