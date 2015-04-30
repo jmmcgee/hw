@@ -98,7 +98,7 @@ extern "C" {
   /** VM Globals **/
 
 
-  ThreadManager threadmanager;
+  ThreadManager *threadmanager = new ThreadManager;
 
 
   /** VM Thread API **/
@@ -125,10 +125,10 @@ extern "C" {
   {
     if (!entry || !tid) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    *tid = threadmanager.getNewId();
+    *tid = threadmanager->getNewId();
     ThreadControlBlock *tcb_ptr = new ThreadControlBlock(entry, param, memsize, prio, *tid);
 
-    threadmanager.pushToDead(tcb_ptr);
+    threadmanager->pushToDead(tcb_ptr);
 
     return VM_STATUS_SUCCESS;
   }
@@ -140,14 +140,14 @@ extern "C" {
 
   TVMStatus VMThreadActivate(TVMThreadID thread)
   {
-    return threadmanager.activateThread(thread);
+    return threadmanager->activateThread(thread);
   }
 
   TVMStatus VMThreadTerminate(TVMThreadID thread)
   {
-    TVMStatus terminatereturn = threadmanager.terminateThread(thread);
+    TVMStatus terminatereturn = threadmanager->terminateThread(thread);
 
-    threadmanager.replaceThread();
+    threadmanager->replaceThread();
 
     return terminatereturn;
   }
@@ -161,7 +161,7 @@ extern "C" {
   {
     if (!stateref) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    ThreadControlBlock *tcb_ptr = threadmanager.findThread(thread);
+    ThreadControlBlock *tcb_ptr = threadmanager->findThread(thread);
 
     if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
 
@@ -174,12 +174,12 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    threadmanager.getCurrentThread()->setSleepcounter(tick);
-    threadmanager.pushToSleep(threadmanager.getCurrentThread());
+    threadmanager->getCurrentThread()->setSleepcounter(tick);
+    threadmanager->pushToSleep(threadmanager->getCurrentThread());
 
-    if (tick == VM_TIMEOUT_IMMEDIATE) threadmanager.replaceThread();
+    if (tick == VM_TIMEOUT_IMMEDIATE) threadmanager->replaceThread();
 
-    while(threadmanager.getCurrentThread()->getSleepcounter());
+    while(threadmanager->getCurrentThread()->getSleepcounter());
 
     return VM_STATUS_SUCCESS;
   }
@@ -258,8 +258,8 @@ extern "C" {
 
   void MachineAlarmCallback(void *calldata)
   {
-    threadmanager.updateSleepingThreads();
-    threadmanager.replaceThread();
+    threadmanager->updateSleepingThreads();
+    threadmanager->replaceThread();
   }
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
@@ -379,6 +379,8 @@ extern "C" {
   {
     std::deque<ThreadControlBlock*>::iterator tcb_it;
 
+    if (currentthread->getId() == id) return currentthread;
+
     for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end(); ++tcb_it)
       if ((*tcb_it)->getId() == id) return *tcb_it;
 
@@ -459,9 +461,6 @@ extern "C" {
       newthread = idlethread;
     } else return;
 
-    std::cout << "CONTEXT SWITCH from " << currentthread << " to " << newthread << std::endl;
-    std::cout << "thread type: " << (newthread != idlethread) << " (0: idle, 1: normal worker)" << std::endl;
-    
     if (currentstate == VM_THREAD_STATE_RUNNING) pushToReady(currentthread);
     newthread->setState(VM_THREAD_STATE_RUNNING);
     oldthread = currentthread;
