@@ -47,9 +47,10 @@ extern "C" {
 
       void activate();
       void terminate();
-      // TODO: make orthogonal ready() and sleep() methods to replace the below methods
-      void setState(TVMThreadState state);
-      void setSleepcounter(TVMTick ticks);
+      void dead();
+      void sleep(TVMTick ticks);
+      void ready();
+      void running();
       TVMTick getSleepcounter();
       void updateSleepcounter();
 
@@ -83,7 +84,7 @@ extern "C" {
       void replaceThread();
       void popFromAll(ThreadControlBlock* thread);
       void pushToDead(ThreadControlBlock *thread);
-      void pushToSleep(ThreadControlBlock* thread);
+      void pushToSleep(ThreadControlBlock* thread, TVMTick tick);
       void pushToReady(ThreadControlBlock* thread);
 
       void updateSleepingThreads();
@@ -178,8 +179,7 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    threadmanager->getCurrentThread()->setSleepcounter(tick);
-    threadmanager->pushToSleep(threadmanager->getCurrentThread());
+    threadmanager->pushToSleep(threadmanager->getCurrentThread(), tick);
 
     if (tick == VM_TIMEOUT_IMMEDIATE) threadmanager->replaceThread();
 
@@ -321,7 +321,6 @@ extern "C" {
     MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
   }
 
-
   void ThreadControlBlock::terminate()
   {
     state = VM_THREAD_STATE_DEAD;
@@ -329,16 +328,26 @@ extern "C" {
     // TODO: free skeleton call and allocated stack
   }
 
-  void ThreadControlBlock::setState(TVMThreadState state)
+  void ThreadControlBlock::dead()
   {
-    this->state = state;
+    state = VM_THREAD_STATE_DEAD;
   }
 
-  void ThreadControlBlock::setSleepcounter(TVMTick ticks)
+  void ThreadControlBlock::sleep(TVMTick ticks)
   {
     state = VM_THREAD_STATE_WAITING;
 
     sleepcounter = ticks;
+  }
+
+  void ThreadControlBlock::ready()
+  {
+    state = VM_THREAD_STATE_READY;
+  }
+
+  void ThreadControlBlock::running()
+  {
+    state = VM_THREAD_STATE_RUNNING;
   }
 
   TVMTick ThreadControlBlock::getSleepcounter()
@@ -377,7 +386,6 @@ extern "C" {
   {
     return currentthread;
   }
-
 
   ThreadControlBlock* ThreadManager::findThread(TVMThreadID id)
   {
@@ -466,7 +474,7 @@ extern "C" {
     } else return;
 
     if (currentstate == VM_THREAD_STATE_RUNNING) pushToReady(currentthread);
-    newthread->setState(VM_THREAD_STATE_RUNNING);
+    newthread->running();
     oldthread = currentthread;
     currentthread = newthread;
 
@@ -516,19 +524,19 @@ extern "C" {
 
   void ThreadManager::pushToDead(ThreadControlBlock* thread)
   {
-    thread->setState(VM_THREAD_STATE_DEAD);
+    thread->dead();
     threadqueue_dead.push_back(thread);
   }
 
-  void ThreadManager::pushToSleep(ThreadControlBlock* thread)
+  void ThreadManager::pushToSleep(ThreadControlBlock* thread, TVMTick tick)
   {
-    thread->setState(VM_THREAD_STATE_WAITING);
+    currentthread->sleep(tick);
     threadqueue_sleeping.push_back(thread);
   }
 
   void ThreadManager::pushToReady(ThreadControlBlock* thread)
   {
-    thread->setState(VM_THREAD_STATE_READY);
+    thread->ready();
     switch(thread->getPrio())
     {
       case VM_THREAD_PRIORITY_LOW:
