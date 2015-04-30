@@ -469,7 +469,43 @@ extern "C" {
 
   void ThreadManager::popFromAll(ThreadControlBlock* thread)
   {
-    // TODO: implement this
+    std::deque<ThreadControlBlock*>::iterator tcb_it;
+
+    for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_dead.erase(tcb_it);
+      else
+        ++tcb_it;
+
+    for (tcb_it = threadqueue_waiting.begin(); tcb_it != threadqueue_waiting.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_waiting.erase(tcb_it);
+      else
+        ++tcb_it;
+
+    for (tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_sleeping.erase(tcb_it);
+      else
+        ++tcb_it;
+
+    for (tcb_it = threadqueue_ready_low.begin(); tcb_it != threadqueue_ready_low.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_ready_low.erase(tcb_it);
+      else
+        ++tcb_it;
+
+    for (tcb_it = threadqueue_ready_med.begin(); tcb_it != threadqueue_ready_med.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_ready_med.erase(tcb_it);
+      else
+        ++tcb_it;
+
+    for (tcb_it = threadqueue_ready_high.begin(); tcb_it != threadqueue_ready_high.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_ready_high.erase(tcb_it);
+      else
+        ++tcb_it;
   }
 
   void ThreadManager::pushToSleep(ThreadControlBlock* thread)
