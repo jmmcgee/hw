@@ -11,6 +11,8 @@
 extern "C" {
   /** Forward Delcarations **/
 
+  #define VM_THREAD_PRIORITY_IDLE                  ((TVMThreadPriority)0x00)
+
   typedef struct {
     TVMThreadEntry entry;
     void* param;
@@ -73,7 +75,6 @@ extern "C" {
 
       ThreadControlBlock* getCurrentThread();
 
-      void addThread(ThreadControlBlock *tcb_ptr);
       ThreadControlBlock* findThread(TVMThreadID id);
 
       TVMStatus activateThread(TVMThreadID id);
@@ -81,12 +82,14 @@ extern "C" {
 
       void replaceThread();
       void popFromAll(ThreadControlBlock* thread);
+      void pushToDead(ThreadControlBlock *thread);
       void pushToSleep(ThreadControlBlock* thread);
       void pushToReady(ThreadControlBlock* thread);
 
       void updateSleepingThreads();
 
-
+      ThreadControlBlock *idlethread;
+      static void idleloop(void* param);
   };
 
   void MachineAlarmCallback(void *calldata);
@@ -125,7 +128,7 @@ extern "C" {
     *tid = threadmanager.getNewId();
     ThreadControlBlock *tcb_ptr = new ThreadControlBlock(entry, param, memsize, prio, *tid);
 
-    threadmanager.addThread(tcb_ptr);
+    threadmanager.pushToDead(tcb_ptr);
 
     return VM_STATUS_SUCCESS;
   }
@@ -261,7 +264,7 @@ extern "C" {
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
     ismainthread(ismainthread),
-    id(0),
+    id(1),
     prio(VM_THREAD_PRIORITY_NORMAL),
     state(VM_THREAD_STATE_RUNNING)
   {
@@ -353,9 +356,12 @@ extern "C" {
   }
 
   ThreadManager::ThreadManager():
-    threadcounter(0)
+    threadcounter(1)
   {
     currentthread = new ThreadControlBlock(true);
+
+    idlethread = new ThreadControlBlock(idleloop, NULL, 0x100000, VM_THREAD_PRIORITY_IDLE, 0);
+    idlethread->activate();
   }
 
   TVMThreadID ThreadManager::getNewId()
@@ -368,10 +374,6 @@ extern "C" {
     return currentthread;
   }
 
-  void ThreadManager::addThread(ThreadControlBlock* tcb_ref)
-  {
-    threadqueue_dead.push_back(tcb_ref);
-  }
 
   ThreadControlBlock* ThreadManager::findThread(TVMThreadID id)
   {
@@ -411,21 +413,7 @@ extern "C" {
     for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end() && *tcb_it != tcb_ptr; ++tcb_it);
     threadqueue_dead.erase(tcb_it);
 
-    TVMThreadPriority prio = tcb_ptr->getPrio();
-    switch(prio)
-    {
-      case VM_THREAD_PRIORITY_LOW:
-        threadqueue_ready_low.push_back(tcb_ptr);
-        break;
-      case VM_THREAD_PRIORITY_NORMAL:
-        threadqueue_ready_med.push_back(tcb_ptr);
-        break;
-      case VM_THREAD_PRIORITY_HIGH:
-        threadqueue_ready_high.push_back(tcb_ptr);
-        break;
-      default:
-        break;
-    }
+    pushToReady(tcb_ptr);
 
     return VM_STATUS_SUCCESS;
   }
@@ -448,39 +436,33 @@ extern "C" {
   void ThreadManager::replaceThread()
   {
     ThreadControlBlock *newthread = 0, *oldthread;
-    TVMThreadState currentprio = currentthread->getPrio();
+    TVMThreadPriority currentprio = currentthread->getPrio();
+    TVMThreadState currentstate = currentthread->getState();
 
-    while(true)
+    if ((currentprio <=  VM_THREAD_PRIORITY_HIGH) && (!threadqueue_ready_high.empty()))
     {
-      if ((currentprio <=  VM_THREAD_PRIORITY_HIGH) && (!threadqueue_ready_high.empty()))
-      {
-        newthread = threadqueue_ready_high.front();
-        threadqueue_ready_high.pop_front();
-      }
-      else if ((currentprio <=  VM_THREAD_PRIORITY_NORMAL) && (!threadqueue_ready_med.empty()))
-      {
-        newthread = threadqueue_ready_med.front();
-        threadqueue_ready_med.pop_front();
-      }
-      else if ((currentprio <=  VM_THREAD_PRIORITY_LOW) && (!threadqueue_ready_low.empty()))
-      {
-        newthread = threadqueue_ready_low.front();
-        threadqueue_ready_low.pop_front();
-      }
-
-      if (!newthread)
-      {
-        if (currentthread->getState() == VM_THREAD_STATE_RUNNING) return;
-        if (currentthread->getState() == VM_THREAD_STATE_READY) return;
-      }
-      else break;
+      newthread = threadqueue_ready_high.front();
+      threadqueue_ready_high.pop_front();
     }
+    else if ((currentprio <=  VM_THREAD_PRIORITY_NORMAL) && (!threadqueue_ready_med.empty()))
+    {
+      newthread = threadqueue_ready_med.front();
+      threadqueue_ready_med.pop_front();
+    }
+    else if ((currentprio <=  VM_THREAD_PRIORITY_LOW) && (!threadqueue_ready_low.empty()))
+    {
+      newthread = threadqueue_ready_low.front();
+      threadqueue_ready_low.pop_front();
+    }
+    else if ((currentprio > VM_THREAD_PRIORITY_IDLE) && (currentprio != VM_THREAD_STATE_RUNNING))
+    {
+      newthread = idlethread;
+    } else return;
 
     std::cout << "CONTEXT SWITCH from " << currentthread << " to " << newthread << std::endl;
-
-    // TODO: requeue old thread if running
-
-    currentthread->setState(VM_THREAD_STATE_READY);
+    std::cout << "thread type: " << (newthread != idlethread) << " (0: idle, 1: normal worker)" << std::endl;
+    
+    if (currentstate == VM_THREAD_STATE_RUNNING) pushToReady(currentthread);
     newthread->setState(VM_THREAD_STATE_RUNNING);
     oldthread = currentthread;
     currentthread = newthread;
@@ -529,6 +511,12 @@ extern "C" {
         ++tcb_it;
   }
 
+  void ThreadManager::pushToDead(ThreadControlBlock* thread)
+  {
+    thread->setState(VM_THREAD_STATE_DEAD);
+    threadqueue_dead.push_back(thread);
+  }
+
   void ThreadManager::pushToSleep(ThreadControlBlock* thread)
   {
     thread->setState(VM_THREAD_STATE_WAITING);
@@ -567,5 +555,10 @@ extern "C" {
         pushToReady(*tcb_it);
         tcb_it = threadqueue_sleeping.erase(tcb_it);
       }
+  }
+
+  void ThreadManager::idleloop(void* param)
+  {
+    while(true);
   }
 }
