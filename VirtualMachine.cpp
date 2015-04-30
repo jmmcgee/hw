@@ -154,7 +154,11 @@ extern "C" {
 
   TVMStatus VMThreadID(TVMThreadIDRef threadref)
   {
-    return 0;
+    if (!threadref) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    *threadref = threadmanager->getCurrentThread()->getId();
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMThreadState(TVMThreadID thread, TVMThreadStateRef stateref)
