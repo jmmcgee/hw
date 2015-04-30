@@ -14,6 +14,7 @@ extern "C" {
   typedef struct {
     TVMThreadEntry entry;
     void* param;
+    TVMThreadID threadid;
   } skeletonCall, *skeletonCallRef;
 
   class ThreadControlBlock {
@@ -30,9 +31,9 @@ extern "C" {
       TVMMemorySize stacksize;
 
       volatile TVMTick sleepcounter;
-      TVMThreadID id;
-      TVMThreadPriority prio;
-      TVMThreadState state;
+      volatile TVMThreadID id;
+      volatile TVMThreadPriority prio;
+      volatile TVMThreadState state;
 
       ThreadControlBlock(bool ismainthread);
       ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id);
@@ -306,6 +307,7 @@ extern "C" {
     call = new skeletonCall();
     call->entry = entry;
     call->param = param;
+    call->threadid = id;
 
     stackaddr = (void *) (new uint8_t[stacksize]);
 
@@ -347,7 +349,7 @@ extern "C" {
     skeletonCallRef _call = (skeletonCallRef) call;
     (_call->entry)(_call->param);
 
-    VMThreadTerminate(threadmanager.getCurrentThread()->getId());
+    VMThreadTerminate(_call->threadid);
   }
 
   ThreadManager::ThreadManager():
@@ -445,29 +447,44 @@ extern "C" {
 
   void ThreadManager::replaceThread()
   {
-    ThreadControlBlock* oldthread = currentthread;
+    ThreadControlBlock *newthread = 0, *oldthread;
+    TVMThreadState currentprio = currentthread->getPrio();
 
-    if (!threadqueue_ready_high.empty())
+    while(true)
     {
-      currentthread = threadqueue_ready_high.front();
-      threadqueue_ready_high.pop_front();
-    }
-    else if (!threadqueue_ready_med.empty())
-    {
-      currentthread = threadqueue_ready_med.front();
-      threadqueue_ready_med.pop_front();
-    }
-    else if (!threadqueue_ready_low.empty())
-    {
-      currentthread = threadqueue_ready_low.front();
-      threadqueue_ready_low.pop_front();
+      if ((currentprio <=  VM_THREAD_PRIORITY_HIGH) && (!threadqueue_ready_high.empty()))
+      {
+        newthread = threadqueue_ready_high.front();
+        threadqueue_ready_high.pop_front();
+      }
+      else if ((currentprio <=  VM_THREAD_PRIORITY_NORMAL) && (!threadqueue_ready_med.empty()))
+      {
+        newthread = threadqueue_ready_med.front();
+        threadqueue_ready_med.pop_front();
+      }
+      else if ((currentprio <=  VM_THREAD_PRIORITY_LOW) && (!threadqueue_ready_low.empty()))
+      {
+        newthread = threadqueue_ready_low.front();
+        threadqueue_ready_low.pop_front();
+      }
+
+      if (!newthread)
+      {
+        if (currentthread->getState() == VM_THREAD_STATE_RUNNING) return;
+        if (currentthread->getState() == VM_THREAD_STATE_READY) return;
+      }
+      else break;
     }
 
-    if (oldthread == currentthread) return;
+    std::cout << "CONTEXT SWITCH from " << currentthread << " to " << newthread << std::endl;
 
-    std::cout << "CONTEXT SWITCH from " << oldthread << " to " << currentthread << std::endl;
+    // TODO: requeue old thread if running
 
-    currentthread->setState(VM_THREAD_STATE_RUNNING);
+    currentthread->setState(VM_THREAD_STATE_READY);
+    newthread->setState(VM_THREAD_STATE_RUNNING);
+    oldthread = currentthread;
+    currentthread = newthread;
+
     MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
   }
 
@@ -547,8 +564,6 @@ extern "C" {
       }
       else
       {
-        std::cout << "FINISHED SLEEP " << *tcb_it << std::endl;
-
         pushToReady(*tcb_it);
         tcb_it = threadqueue_sleeping.erase(tcb_it);
       }
