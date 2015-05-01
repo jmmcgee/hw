@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <variant.h>
+#include <delay.h>
 #include <WyzBee_gpio.h>
 #include <WyzBee_bt.h>
 #include <WyzBee_spi.h>
@@ -11,9 +11,8 @@
 int main()
 {
   initOled();
-  WyzBee_BT_init();
-  
   sys_ticks_init();
+  WyzBee_BT_init();
 
   char* buf = new char[336];
   int n = 0;
