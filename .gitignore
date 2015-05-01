@@ -7,6 +7,8 @@
 *.uvgui.*
 *.uvguix.*
 *.uvopt
+.DS_Store
+desktop.ini
 
 *.axf
 *.dep
