@@ -29,7 +29,7 @@ extern "C" {
       void* param;
       skeletonCallRef call;
 
-      void *stackaddr;
+      char *stackaddr;
       TVMMemorySize stacksize;
 
       volatile TVMTick sleepcounter;
@@ -39,6 +39,7 @@ extern "C" {
 
       ThreadControlBlock(bool ismainthread);
       ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id);
+      ~ThreadControlBlock();
 
       TVMThreadID getId();
       TVMThreadState getState();
@@ -72,6 +73,7 @@ extern "C" {
       std::deque<ThreadControlBlock*> threadqueue_dead;
 
       ThreadManager();
+      ~ThreadManager();
 
       TVMThreadID getNewId();
 
@@ -294,6 +296,8 @@ extern "C" {
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
     ismainthread(ismainthread),
+    call(0),
+    stackaddr(0),
     id(1),
     prio(VM_THREAD_PRIORITY_NORMAL),
     state(VM_THREAD_STATE_RUNNING)
@@ -305,12 +309,20 @@ extern "C" {
     ismainthread(false),
     entry(entry),
     param(param),
+    call(0),
+    stackaddr(0),
     stacksize(memsize),
     id(id),
     prio(prio),
     state(VM_THREAD_STATE_DEAD)
   {
 
+  }
+
+  ThreadControlBlock::~ThreadControlBlock()
+  {
+    delete call;
+    delete[] stackaddr;
   }
 
   TVMThreadID ThreadControlBlock::getId()
@@ -337,12 +349,14 @@ extern "C" {
   {
     state = VM_THREAD_STATE_READY;
 
+    if (call) delete call;
     call = new skeletonCall();
     call->entry = entry;
     call->param = param;
     call->threadid = id;
 
-    stackaddr = (void *) (new uint8_t[stacksize]);
+    if (stackaddr) delete[] stackaddr;
+    stackaddr = new char[stacksize];
 
     MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
   }
@@ -350,8 +364,6 @@ extern "C" {
   void ThreadControlBlock::terminate()
   {
     state = VM_THREAD_STATE_DEAD;
-
-    // TODO: free skeleton call and allocated stack
   }
 
   void ThreadControlBlock::dead()
@@ -406,6 +418,12 @@ extern "C" {
 
     idlethread = new ThreadControlBlock(idleloop, NULL, 0x100000, VM_THREAD_PRIORITY_IDLE, 0);
     idlethread->activate();
+  }
+
+  ThreadManager::~ThreadManager()
+  {
+    delete currentthread;
+    delete idlethread;
   }
 
   TVMThreadID ThreadManager::getNewId()
