@@ -148,7 +148,19 @@ extern "C" {
 
   TVMStatus VMThreadDelete(TVMThreadID thread)
   {
-    return 0;
+    ThreadControlBlock *tcb_ptr = threadmanager->findThread(thread);
+
+    if (!tcb_ptr) return VM_STATUS_ERROR_INVALID_ID;
+
+    if (tcb_ptr->getState() != VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
+
+    threadmanager->popFromAll(tcb_ptr);
+
+    if (threadmanager->getCurrentThread() == tcb_ptr) threadmanager->replaceThread();
+
+    delete tcb_ptr;
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMThreadActivate(TVMThreadID thread)

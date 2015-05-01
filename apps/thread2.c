@@ -36,6 +36,9 @@ void VMMain(int argc, char *argv[]){
     VMThreadActivate(VMThreadID);
     VMPrint("VMMain going to sleep 50\n");
     VMThreadSleep(50);
+    VMPrint("VMMain cleanup VMThread\n");
+    VMThreadTerminate(VMThreadID);
+    VMThreadDelete(VMThreadID);
     VMPrint("VMMain Awake\nGoodbye\n");
 
 }
