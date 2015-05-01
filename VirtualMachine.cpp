@@ -51,6 +51,7 @@ extern "C" {
       void sleep(TVMTick ticks);
       void ready();
       void running();
+      void waiting();
       TVMTick getSleepcounter();
       void updateSleepcounter();
 
@@ -83,14 +84,23 @@ extern "C" {
 
       void replaceThread();
       void popFromAll(ThreadControlBlock* thread);
+      void popFromWaiting(ThreadControlBlock* thread);
       void pushToDead(ThreadControlBlock *thread);
       void pushToSleep(ThreadControlBlock* thread, TVMTick tick);
       void pushToReady(ThreadControlBlock* thread);
+      void pushToWaiting(ThreadControlBlock* thread);
 
       void updateSleepingThreads();
 
       ThreadControlBlock *idlethread;
       static void idleloop(void* param);
+
+      static void requestFileOperationCallback(void* calldata, int result);
+      TVMStatus requestFileOpen(const char *filename, int flags, int mode, int *filedescriptor);
+      TVMStatus requestFileWrite(int filedescriptor, void *data, int *length);
+      TVMStatus requestFileSeek(int filedescriptor, int offset, int whence, int *newoffset);
+      TVMStatus requestFileRead(int filedescriptor, void *data, int *length);
+      TVMStatus requestFileClose(int filedescriptor);
   };
 
   void MachineAlarmCallback(void *calldata);
@@ -223,37 +233,53 @@ extern "C" {
 
   TVMStatus VMFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
   {
-    return 0;
+    if (!filename || !filedescriptor) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    TVMStatus filereturn = threadmanager->requestFileOpen(filename, flags, mode, filedescriptor);
+
+    while(threadmanager->getCurrentThread()->getState() == VM_THREAD_STATE_WAITING);
+
+    return filereturn;
   }
 
   TVMStatus VMFileClose(int filedescriptor)
   {
-    return 0;
+    TVMStatus filereturn = threadmanager->requestFileClose(filedescriptor);
+
+    while(threadmanager->getCurrentThread()->getState() == VM_THREAD_STATE_WAITING);
+
+    return filereturn;
   }
 
   TVMStatus VMFileRead(int filedescriptor, void *data, int *length)
   {
-    return 0;
+    if (!data || !length) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    TVMStatus filereturn = threadmanager->requestFileRead(filedescriptor, data, length);
+
+    while(threadmanager->getCurrentThread()->getState() == VM_THREAD_STATE_WAITING);
+
+    return filereturn;
   }
 
   TVMStatus VMFileWrite(int filedescriptor, void *data, int *length)
   {
-    ssize_t bytes_written;
-
     if (!data || !length) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-    bytes_written = write(filedescriptor, data, *length);
+    TVMStatus filereturn = threadmanager->requestFileWrite(filedescriptor, data, length);
 
-    if (bytes_written == -1) return VM_STATUS_FAILURE;
+    while(threadmanager->getCurrentThread()->getState() == VM_THREAD_STATE_WAITING);
 
-    *length = *length - bytes_written;
-
-    return VM_STATUS_SUCCESS;
+    return filereturn;
   }
 
   TVMStatus VMFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
   {
-    return 0;
+    TVMStatus filereturn = threadmanager->requestFileSeek(filedescriptor, offset, whence, newoffset);
+
+    while(threadmanager->getCurrentThread()->getState() == VM_THREAD_STATE_WAITING);
+
+    return filereturn;
   }
 
 
@@ -348,6 +374,11 @@ extern "C" {
   void ThreadControlBlock::running()
   {
     state = VM_THREAD_STATE_RUNNING;
+  }
+
+  void ThreadControlBlock::waiting()
+  {
+    state = VM_THREAD_STATE_WAITING;
   }
 
   TVMTick ThreadControlBlock::getSleepcounter()
@@ -522,6 +553,15 @@ extern "C" {
         ++tcb_it;
   }
 
+  void ThreadManager::popFromWaiting(ThreadControlBlock* thread)
+  {
+    for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_waiting.begin(); tcb_it != threadqueue_waiting.end();)
+      if ((*tcb_it) == thread)
+        tcb_it = threadqueue_waiting.erase(tcb_it);
+      else
+        ++tcb_it;
+  }
+
   void ThreadManager::pushToDead(ThreadControlBlock* thread)
   {
     thread->dead();
@@ -553,6 +593,12 @@ extern "C" {
     }
   }
 
+  void ThreadManager::pushToWaiting(ThreadControlBlock* thread)
+  {
+    thread->waiting();
+    threadqueue_waiting.push_back(thread);
+  }
+
   void ThreadManager::updateSleepingThreads()
   {
     for (std::deque<ThreadControlBlock*>::iterator tcb_it = threadqueue_sleeping.begin(); tcb_it != threadqueue_sleeping.end();)
@@ -571,5 +617,100 @@ extern "C" {
   void ThreadManager::idleloop(void* param)
   {
     while(true);
+  }
+
+  typedef struct {
+    ThreadManager *self;
+    ThreadControlBlock* requestingthread;
+    int result;
+  } requestFileOperationStruct, *requestFileOperationStructRef;
+
+  void ThreadManager::requestFileOperationCallback(void *calldata, int result)
+  {
+    requestFileOperationStructRef _calldata = (requestFileOperationStructRef) calldata;
+
+    _calldata->result = result;
+
+    _calldata->self->popFromWaiting(_calldata->requestingthread);
+    _calldata->self->pushToReady(_calldata->requestingthread);
+    _calldata->self->replaceThread();
+  }
+
+  TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
+  {
+    requestFileOperationStruct calldata;
+    calldata.self = this;
+    calldata.requestingthread = currentthread;
+
+    pushToWaiting(currentthread);
+
+    MachineFileOpen(filename, flags, mode, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    *filedescriptor = calldata.result;
+
+    return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  }
+
+  TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *length)
+  {
+    requestFileOperationStruct calldata;
+    calldata.self = this;
+    calldata.requestingthread = currentthread;
+
+    pushToWaiting(currentthread);
+
+    MachineFileWrite(filedescriptor, data, *length, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    if (calldata.result >= 0) *length = *length - calldata.result;
+
+    return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  }
+
+  TVMStatus ThreadManager::requestFileSeek(int filedescriptor, int offset, int whence, int *newoffset)
+  {
+    requestFileOperationStruct calldata;
+    calldata.self = this;
+    calldata.requestingthread = currentthread;
+
+    pushToWaiting(currentthread);
+
+    MachineFileSeek(filedescriptor, offset, whence, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    if (newoffset) *newoffset = calldata.result;
+
+    return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  }
+
+  TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *length)
+  {
+    requestFileOperationStruct calldata;
+    calldata.self = this;
+    calldata.requestingthread = currentthread;
+
+    pushToWaiting(currentthread);
+
+    MachineFileRead(filedescriptor, data, *length, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    if (calldata.result >= 0) *length = *length - calldata.result;
+
+    return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  }
+
+  TVMStatus ThreadManager::requestFileClose(int filedescriptor)
+  {
+    requestFileOperationStruct calldata;
+    calldata.self = this;
+    calldata.requestingthread = currentthread;
+
+    pushToWaiting(currentthread);
+
+    MachineFileClose(filedescriptor, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
   }
 }
