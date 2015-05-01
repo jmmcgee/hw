@@ -1,3 +1,6 @@
+#ifndef WYZBEE_BT_H
+#define WYZBEE_BT_H
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -1737,3 +1740,5 @@ uint16 WaitForSPPConnComplete (void)
 /******************************************************************************/
 /* EOF (not truncated)                                                        */
 /******************************************************************************/
+
+#endif
