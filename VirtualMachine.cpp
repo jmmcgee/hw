@@ -340,7 +340,10 @@ extern "C" {
       return VM_STATUS_ERROR_INVALID_STATE;
 
     q->pop_front();
-    /** TODO switch to next task in line for mutex if has higher priority **/
+    ThreadControlBlock* newthread = threadmanager->findThread(q->front());
+    newthread->sleepcounter = 0;
+    threadmanager->pushToReady(newthread);
+    threadmanager->replaceThread();
     return VM_STATUS_SUCCESS;
   }
 
