@@ -252,10 +252,9 @@ extern "C" {
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-
-    if(mutexqueues_it->second == NULL)
-      return VM_STATUS_ERROR_INVALID_STATE;
-    if(!mutexqueues_it->second->empty())
+    if(mutexqueues_it->second == NULL ||
+        !mutexqueues_it->second->empty()
+      )
       return VM_STATUS_ERROR_INVALID_STATE;
 
     delete mutexqueues_it->second;
@@ -295,9 +294,10 @@ extern "C" {
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    if(mutexqueues_it->second == NULL)
-      return VM_STATUS_ERROR_INVALID_STATE;
-    if(mutexqueues_it->second->empty() || mutexqueues_it->second->front() != threadmanager->currentthread->getId())
+    if(mutexqueues_it->second == NULL ||
+        mutexqueues_it->second->empty() ||
+        mutexqueues_it->second->front() != threadmanager->currentthread->getId()
+      )
       return VM_STATUS_ERROR_INVALID_STATE;
 
     mutexqueues_it->second->pop();
