@@ -290,7 +290,31 @@ extern "C" {
 
   TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
   {
-    return 0;
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::deque<TVMThreadID>* q;
+
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
+      return VM_STATUS_ERROR_INVALID_ID;
+    q = mutexqueues_it->second;
+
+    if(q == NULL)
+      return VM_STATUS_ERROR_INVALID_STATE;
+
+    if(timeout == VM_TIMEOUT_IMMEDIATE) {
+      if(!q->empty())
+        return VM_STATUS_FAILURE;
+      q->push_back(threadmanager->currentthread->getId());
+    }
+    else if(timeout == VM_TIMEOUT_INFINITE) {
+      /** TODO implement inifite timeout **/
+      return VM_STATUS_FAILURE;
+    }
+    else {
+      /** TODO implement finite timeout **/
+      return VM_STATUS_FAILURE;
+    }
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexRelease(TVMMutexID mutex)
@@ -309,6 +333,7 @@ extern "C" {
       return VM_STATUS_ERROR_INVALID_STATE;
 
     q->pop_front();
+    /** TODO switch to next task in line for mutex if has higher priority **/
     return VM_STATUS_SUCCESS;
   }
 
