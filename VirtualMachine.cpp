@@ -310,7 +310,7 @@ extern "C" {
     }
     else if(timeout == VM_TIMEOUT_INFINITE) {
       q->push_back(mutex);
-      threadmanager->currentthread->sleep(VM_TIMEOUT_INFINITE);
+      threadmanager->pushToWaiting(threadmanager->currentthread);
       threadmanager->replaceThread();
       if(q->front() != threadmanager->currentthread->getId())
         return VM_STATUS_FAILURE;
@@ -341,7 +341,7 @@ extern "C" {
 
     q->pop_front();
     ThreadControlBlock* newthread = threadmanager->findThread(q->front());
-    newthread->sleepcounter = 0;
+    threadmanager->popFromWaiting(newthread);
     threadmanager->pushToReady(newthread);
     threadmanager->replaceThread();
     return VM_STATUS_SUCCESS;
