@@ -111,7 +111,7 @@ extern "C" {
   {
     public:
       TVMMutexID lastID;
-      std::map<TVMMutexID, std::queue<TVMThreadID> > mutexqueues;
+      std::map<TVMMutexID, std::queue<TVMThreadID>* > mutexqueues;
 
       MutexManager();
       ~MutexManager();
@@ -231,17 +231,58 @@ extern "C" {
 
   TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
   {
-    return 0;
+    TVMMutexID mutex = mutexmanager->lastID+1;
+    
+    while(mutexmanager->mutexqueues.find(mutex) != mutexmanager->mutexqueues.end()) {
+      mutex++;
+      if(mutex == mutexmanager->lastID)
+        return VM_STATUS_ERROR_INSUFFICIENT_RESOURCES;
+    }
+
+    *mutexref = mutex;
+
+    mutexmanager->mutexqueues[mutex] = new std::queue<TVMThreadID>;
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexDelete(TVMMutexID mutex)
   {
-    return 0;
+    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
+      return VM_STATUS_ERROR_INVALID_ID;
+
+    mutexmanager->mutexqueues[mutex] = new std::queue<TVMThreadID>;
+
+    if(!mutexqueues_it->second || !mutexqueues_it->second->empty()) {
+      return VM_STATUS_ERROR_INVALID_STATE;
+    }
+
+    delete mutexqueues_it->second;
+    mutexmanager->mutexqueues.erase(mutexqueues_it);
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   {
-    return 0;
+    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
+      return VM_STATUS_ERROR_INVALID_ID;
+
+    if(ownerref == NULL)
+      return VM_STATUS_ERROR_INVALID_PARAMETER;
+    if(mutexqueues_it->second == NULL)
+      return VM_STATUS_ERROR_INVALID_STATE;
+
+    if(mutexqueues_it->second->empty())
+      *ownerref = VM_THREAD_ID_INVALID;
+    else
+      *ownerref = mutexqueues_it->second->front();
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
@@ -251,7 +292,17 @@ extern "C" {
 
   TVMStatus VMMutexRelease(TVMMutexID mutex)
   {
-    return 0;
+    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
+      return VM_STATUS_ERROR_INVALID_ID;
+    if(mutexqueues_it->second == NULL)
+      return VM_STATUS_ERROR_INVALID_STATE;
+    if(mutexqueues_it->second->empty() || mutexqueues_it->second->front() != threadmanager->currentthread->getId())
+      return VM_STATUS_ERROR_INVALID_STATE;
+
+    mutexqueues_it->second->pop();
+    return VM_STATUS_SUCCESS;
   }
 
 
