@@ -300,14 +300,21 @@ extern "C" {
     if(q == NULL)
       return VM_STATUS_ERROR_INVALID_STATE;
 
-    if(timeout == VM_TIMEOUT_IMMEDIATE) {
-      if(!q->empty())
-        return VM_STATUS_FAILURE;
+    if(q->empty()) {
       q->push_back(threadmanager->currentthread->getId());
+      return VM_STATUS_SUCCESS;
+    }
+
+    if(timeout == VM_TIMEOUT_IMMEDIATE) {
+      return VM_STATUS_FAILURE;
     }
     else if(timeout == VM_TIMEOUT_INFINITE) {
-      /** TODO implement inifite timeout **/
-      return VM_STATUS_FAILURE;
+      q->push_back(mutex);
+      threadmanager->currentthread->sleep(VM_TIMEOUT_INFINITE);
+      threadmanager->replaceThread();
+      if(q->front() != threadmanager->currentthread->getId())
+        return VM_STATUS_FAILURE;
+      return VM_STATUS_SUCCESS;
     }
     else {
       /** TODO implement finite timeout **/
@@ -508,6 +515,7 @@ extern "C" {
 
   void ThreadControlBlock::updateSleepcounter()
   {
+    if (sleepcounter == VM_TIMEOUT_INFINITE) return;
     if (sleepcounter) --sleepcounter;
   }
 
