@@ -2,6 +2,8 @@
 #include <iostream>
 
 #include <deque>
+#include <queue>
+#include <map>
 
 #include "Machine.h"
 #include "VirtualMachine.h"
@@ -105,6 +107,16 @@ extern "C" {
       TVMStatus requestFileClose(int filedescriptor);
   };
 
+  class MutexManager
+  {
+    public:
+      TVMMutexID lastID;
+      std::map<TVMMutexID, std::queue<TVMThreadID> > mutexqueues;
+
+      MutexManager();
+      ~MutexManager();
+  };
+
   void MachineAlarmCallback(void *calldata);
 
 
@@ -112,6 +124,7 @@ extern "C" {
 
 
   ThreadManager *threadmanager = new ThreadManager;
+  MutexManager *mutexmanager = new MutexManager;
 
 
   /** VM Thread API **/
@@ -742,5 +755,14 @@ extern "C" {
     replaceThread();
 
     return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  }
+
+  MutexManager::MutexManager()
+    : lastID(0)
+  {
+  }
+
+  MutexManager::~MutexManager()
+  {
   }
 }
