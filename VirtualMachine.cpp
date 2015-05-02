@@ -253,11 +253,10 @@ extern "C" {
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
 
-    mutexmanager->mutexqueues[mutex] = new std::queue<TVMThreadID>;
-
-    if(!mutexqueues_it->second || !mutexqueues_it->second->empty()) {
+    if(mutexqueues_it->second == NULL)
       return VM_STATUS_ERROR_INVALID_STATE;
-    }
+    if(!mutexqueues_it->second->empty())
+      return VM_STATUS_ERROR_INVALID_STATE;
 
     delete mutexqueues_it->second;
     mutexmanager->mutexqueues.erase(mutexqueues_it);
