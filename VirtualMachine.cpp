@@ -111,7 +111,7 @@ extern "C" {
   {
     public:
       TVMMutexID lastID;
-      std::map<TVMMutexID, std::queue<TVMThreadID>* > mutexqueues;
+      std::map<TVMMutexID, std::deque<TVMThreadID>* > mutexqueues;
 
       MutexManager();
       ~MutexManager();
@@ -241,23 +241,26 @@ extern "C" {
 
     *mutexref = mutex;
 
-    mutexmanager->mutexqueues[mutex] = new std::queue<TVMThreadID>;
+    mutexmanager->mutexqueues[mutex] = new std::deque<TVMThreadID>;
 
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexDelete(TVMMutexID mutex)
   {
-    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::deque<TVMThreadID>* q;
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    if(mutexqueues_it->second == NULL ||
-        !mutexqueues_it->second->empty()
+    q = mutexqueues_it->second;
+
+    if(q == NULL ||
+        !q->empty()
       )
       return VM_STATUS_ERROR_INVALID_STATE;
 
-    delete mutexqueues_it->second;
+    delete q;
     mutexmanager->mutexqueues.erase(mutexqueues_it);
 
     return VM_STATUS_SUCCESS;
@@ -265,20 +268,22 @@ extern "C" {
 
   TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   {
-    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::deque<TVMThreadID>* q;
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
+    q = mutexqueues_it->second;
 
     if(ownerref == NULL)
       return VM_STATUS_ERROR_INVALID_PARAMETER;
-    if(mutexqueues_it->second == NULL)
+    if(q == NULL)
       return VM_STATUS_ERROR_INVALID_STATE;
 
-    if(mutexqueues_it->second->empty())
+    if(q->empty())
       *ownerref = VM_THREAD_ID_INVALID;
     else
-      *ownerref = mutexqueues_it->second->front();
+      *ownerref = q->front();
 
     return VM_STATUS_SUCCESS;
   }
@@ -290,17 +295,20 @@ extern "C" {
 
   TVMStatus VMMutexRelease(TVMMutexID mutex)
   {
-    std::map<TVMMutexID, std::queue<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::deque<TVMThreadID>* q;
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    if(mutexqueues_it->second == NULL ||
-        mutexqueues_it->second->empty() ||
-        mutexqueues_it->second->front() != threadmanager->currentthread->getId()
+    q = mutexqueues_it->second;
+
+    if(q == NULL ||
+        q->empty() ||
+        q->front() != threadmanager->currentthread->getId()
       )
       return VM_STATUS_ERROR_INVALID_STATE;
 
-    mutexqueues_it->second->pop();
+    q->pop_front();
     return VM_STATUS_SUCCESS;
   }
 
