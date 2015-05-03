@@ -340,10 +340,12 @@ extern "C" {
       return VM_STATUS_ERROR_INVALID_STATE;
 
     q->pop_front();
-    ThreadControlBlock* newthread = threadmanager->findThread(q->front());
-    threadmanager->popFromWaiting(newthread);
-    threadmanager->pushToReady(newthread);
-    threadmanager->replaceThread();
+    if(!q->empty()) {
+      ThreadControlBlock* newthread = threadmanager->findThread(q->front());
+      threadmanager->popFromWaiting(newthread);
+      threadmanager->pushToReady(newthread);
+      threadmanager->replaceThread();
+    }
     return VM_STATUS_SUCCESS;
   }
 
