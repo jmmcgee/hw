@@ -44,8 +44,8 @@ void VMMain(int argc, char *argv[]){
     VMMutexAcquire(MutexHigh, VM_TIMEOUT_INFINITE);
     VMPrint("VMMain activating processes.\n");
 //    VMThreadActivate(VMThreadIDLow);
-//    VMThreadActivate(VMThreadIDMedium);
-//    VMThreadActivate(VMThreadIDHigh);
+    VMThreadActivate(VMThreadIDMedium);
+    VMThreadActivate(VMThreadIDHigh);
     VMPrint("VMMain releasing mutexes.\n");
     VMMutexRelease(MutexLow);
     VMMutexRelease(MutexMedium);
