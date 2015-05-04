@@ -668,6 +668,7 @@ extern "C" {
   {
     std::deque<ThreadControlBlock*>::iterator tcb_it;
 
+    if (idlethread->getId() == id) return idlethread;
     if (currentthread->getId() == id) return currentthread;
 
     for (tcb_it = threadqueue_dead.begin(); tcb_it != threadqueue_dead.end(); ++tcb_it)
