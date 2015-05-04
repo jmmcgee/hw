@@ -12,7 +12,7 @@
 
 extern "C" {
 
-  void status();
+  void status(const char* msg = "");
   /** Forward Delcarations **/
 
   #define VM_THREAD_PRIORITY_IDLE                  ((TVMThreadPriority)0x00)
@@ -44,7 +44,14 @@ extern "C" {
       ThreadControlBlock(bool ismainthread);
       ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id);
       ~ThreadControlBlock();
-TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMachineContextRef getMcnxtRef(); void activate(); void terminate();
+
+      TVMThreadID getId();
+      TVMThreadState getState();
+      TVMThreadPriority getPrio();
+      SMachineContextRef getMcnxtRef();
+
+      void activate();
+      void terminate();
       void dead();
       void sleep(TVMTick ticks);
       void ready();
@@ -226,7 +233,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
 
   TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
   {
-    static TMachineSignalState sigstate;
+    TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
     TVMMutexID mutex = mutexmanager->lastID+1;
@@ -249,7 +256,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
 
   TVMStatus VMMutexDelete(TVMMutexID mutex)
   {
-    static TMachineSignalState sigstate;
+    TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
@@ -278,7 +285,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
 
   TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   {
-    static TMachineSignalState sigstate;
+    TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
@@ -310,7 +317,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
 
   TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
   {
-    static TMachineSignalState sigstate;
+    TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
@@ -330,6 +337,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
     if(q->empty()) {
       q->push_back(threadmanager->currentthread->getId());
       MachineResumeSignals(&sigstate);
+      status("if(q->empty()) {");
       return VM_STATUS_SUCCESS;
     }
 
@@ -345,9 +353,11 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
       MachineSuspendSignals(&sigstate);
       if(q->front() != threadmanager->currentthread->getId()) {
         MachineResumeSignals(&sigstate);
+        status("if(q->front() != threadmanager->currentthread->getId()) {");
         return VM_STATUS_FAILURE;
       }
       MachineResumeSignals(&sigstate);
+      status("else if(timeout == VM_TIMEOUT_INFINITE) {");
       return VM_STATUS_SUCCESS;
     }
     else {
@@ -357,13 +367,12 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
     }
 
     MachineResumeSignals(&sigstate);
-    status();
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexRelease(TVMMutexID mutex)
   {
-    static TMachineSignalState sigstate;
+    TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
@@ -394,6 +403,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
       MachineSuspendSignals(&sigstate);
     }
     MachineResumeSignals(&sigstate);
+    status("VMMutexRelease");
     return VM_STATUS_SUCCESS;
   }
 
@@ -456,7 +466,7 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
   /** VM Thread Scheduler **/
 
 
-  void status()
+  void status(const char* msg)
   {
     static int i =0;
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it;
@@ -465,8 +475,9 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
 
     using namespace std;
     cerr << ">>--------- "<<i<<" --------->>\n";
+    cerr << ">> " << msg << "\n";
     cerr << "Threads...\n";
-    for(unsigned int i = 0; i < threadmanager->threadcounter; i++) {
+    for(unsigned int i = 0; i <= threadmanager->threadcounter; i++) {
       ThreadControlBlock* thread = threadmanager->findThread(i);
       if(!thread)
         continue;
@@ -519,7 +530,6 @@ TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMa
     threadmanager->updateSleepingThreads();
     threadmanager->replaceThread();
 
-    status();
   }
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
