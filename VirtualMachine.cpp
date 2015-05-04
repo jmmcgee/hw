@@ -44,14 +44,7 @@ extern "C" {
       ThreadControlBlock(bool ismainthread);
       ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id);
       ~ThreadControlBlock();
-
-      TVMThreadID getId();
-      TVMThreadState getState();
-      TVMThreadPriority getPrio();
-      SMachineContextRef getMcnxtRef();
-
-      void activate();
-      void terminate();
+TVMThreadID getId(); TVMThreadState getState(); TVMThreadPriority getPrio(); SMachineContextRef getMcnxtRef(); void activate(); void terminate();
       void dead();
       void sleep(TVMTick ticks);
       void ready();
@@ -472,6 +465,31 @@ extern "C" {
 
     using namespace std;
     cerr << ">>--------- "<<i<<" --------->>\n";
+    cerr << "Threads...\n";
+    for(unsigned int i = 0; i < threadmanager->threadcounter; i++) {
+      ThreadControlBlock* thread = threadmanager->findThread(i);
+      if(!thread)
+        continue;
+      
+      cerr << i << ": ";
+      switch(thread->state){
+        case VM_THREAD_STATE_DEAD:
+          cerr << "DEAD\n";
+          break;
+        case VM_THREAD_STATE_RUNNING:
+          cerr << "RUNNING\n";
+          break;
+        case VM_THREAD_STATE_READY:
+          cerr << "READY\n";
+          break;
+        case VM_THREAD_STATE_WAITING:
+          cerr << "WAITING\n";
+          break;
+      }
+
+    }
+
+    cerr << "Mutex...\n";
     for(mutexqueues_it = mutexmanager->mutexqueues.begin();
         mutexqueues_it != mutexmanager->mutexqueues.end();
         mutexqueues_it++)
