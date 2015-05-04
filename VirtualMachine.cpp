@@ -155,10 +155,15 @@ extern "C" {
   {
     if (!entry || !tid) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
+    TMachineSignalState sigstate;
+    MachineSuspendSignals(&sigstate);
+
     *tid = threadmanager->getNewId();
     ThreadControlBlock *tcb_ptr = new ThreadControlBlock(entry, param, memsize, prio, *tid);
 
     threadmanager->pushToDead(tcb_ptr);
+
+    MachineResumeSignals(&sigstate);
 
     return VM_STATUS_SUCCESS;
   }
@@ -171,23 +176,41 @@ extern "C" {
 
     if (tcb_ptr->getState() != VM_THREAD_STATE_DEAD) return VM_STATUS_ERROR_INVALID_STATE;
 
+    TMachineSignalState sigstate;
+    MachineSuspendSignals(&sigstate);
+
     threadmanager->popFromAll(tcb_ptr);
 
-    if (threadmanager->getCurrentThread() == tcb_ptr) threadmanager->replaceThread();
+    if (threadmanager->getCurrentThread() == tcb_ptr) {
+      MachineResumeSignals(&sigstate);
+      threadmanager->replaceThread();
+    }
 
     delete tcb_ptr;
+
+    MachineResumeSignals(&sigstate);
 
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMThreadActivate(TVMThreadID thread)
   {
+    TMachineSignalState sigstate;
+    MachineSuspendSignals(&sigstate);
+
     return threadmanager->activateThread(thread);
+
+    MachineResumeSignals(&sigstate);
   }
 
   TVMStatus VMThreadTerminate(TVMThreadID thread)
   {
+    TMachineSignalState sigstate;
+    MachineSuspendSignals(&sigstate);
+
     TVMStatus terminatereturn = threadmanager->terminateThread(thread);
+
+    MachineResumeSignals(&sigstate);
 
     threadmanager->replaceThread();
 
@@ -220,7 +243,12 @@ extern "C" {
   {
     if (tick == VM_TIMEOUT_INFINITE) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
+    TMachineSignalState sigstate;
+    MachineSuspendSignals(&sigstate);
+
     threadmanager->pushToSleep(threadmanager->getCurrentThread(), tick);
+
+    MachineResumeSignals(&sigstate);
 
     if (tick == VM_TIMEOUT_IMMEDIATE) threadmanager->replaceThread();
 
@@ -239,7 +267,7 @@ extern "C" {
     MachineSuspendSignals(&sigstate);
 
     TVMMutexID mutex = mutexmanager->lastID+1;
-    
+
     while(mutexmanager->mutexqueues.find(mutex) != mutexmanager->mutexqueues.end()) {
       mutex++;
       if(mutex == mutexmanager->lastID) {
@@ -261,7 +289,7 @@ extern "C" {
     TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
-    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
@@ -290,7 +318,7 @@ extern "C" {
     TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
-    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
     if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
@@ -322,7 +350,7 @@ extern "C" {
     TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
-    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
     sprintf(buf, "Acquiring mutex... [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
@@ -380,7 +408,7 @@ extern "C" {
     TMachineSignalState sigstate;
     MachineSuspendSignals(&sigstate);
 
-    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex); 
+    std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
     sprintf(buf, "Released mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
@@ -511,7 +539,7 @@ extern "C" {
       ThreadControlBlock* thread = threadmanager->findThread(i);
       if(!thread)
         continue;
-      
+
       cerr << i << ": ";
       switch(thread->state){
         case VM_THREAD_STATE_DEAD:
@@ -547,7 +575,7 @@ extern "C" {
         cerr << " " << *q_it;
       }
       cerr << "\n";
-      
+
     }
     cerr << "<<--------- "<<i<<" ---------<<\n";
     cerr << flush;
@@ -747,6 +775,8 @@ extern "C" {
     threadqueue_dead.erase(tcb_it);
 
     pushToReady(tcb_ptr);
+
+    if (tcb_ptr->getPrio() > currentthread->getPrio()) replaceThread();
 
     return VM_STATUS_SUCCESS;
   }
