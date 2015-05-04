@@ -802,22 +802,26 @@ extern "C" {
     TVMThreadPriority currentprio = currentthread->getPrio();
     TVMThreadState currentstate = currentthread->getState();
 
-    if ((currentprio <=  VM_THREAD_PRIORITY_HIGH) && (!threadqueue_ready_high.empty()))
+    if ((currentprio != VM_THREAD_STATE_RUNNING || currentprio <=  VM_THREAD_PRIORITY_HIGH)
+        && (!threadqueue_ready_high.empty()))
     {
       newthread = threadqueue_ready_high.front();
       threadqueue_ready_high.pop_front();
     }
-    else if ((currentprio <=  VM_THREAD_PRIORITY_NORMAL) && (!threadqueue_ready_med.empty()))
+    else if ((currentprio != VM_THREAD_STATE_RUNNING || currentprio <=  VM_THREAD_PRIORITY_NORMAL)
+        && (!threadqueue_ready_med.empty()))
     {
       newthread = threadqueue_ready_med.front();
       threadqueue_ready_med.pop_front();
     }
-    else if ((currentprio <=  VM_THREAD_PRIORITY_LOW) && (!threadqueue_ready_low.empty()))
+    else if ((currentprio != VM_THREAD_STATE_RUNNING || currentprio <=  VM_THREAD_PRIORITY_LOW)
+        && (!threadqueue_ready_low.empty()))
     {
       newthread = threadqueue_ready_low.front();
       threadqueue_ready_low.pop_front();
     }
-    else if ((currentprio > VM_THREAD_PRIORITY_IDLE) && (currentprio != VM_THREAD_STATE_RUNNING))
+    else if ((currentprio != VM_THREAD_STATE_RUNNING || currentprio > VM_THREAD_PRIORITY_IDLE)
+        && (currentprio != VM_THREAD_STATE_RUNNING))
     {
       newthread = idlethread;
     } else return;
