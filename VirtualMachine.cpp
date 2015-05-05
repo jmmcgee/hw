@@ -120,6 +120,18 @@ extern "C" {
       ~MutexManager();
   };
 
+  class SignalGuard
+  {
+    public:
+      TMachineSignalState sigstate;
+
+      SignalGuard();
+      ~SignalGuard();
+
+      void lock();
+      void release();
+  };
+
   void MachineAlarmCallback(void *calldata);
 
 
@@ -1046,5 +1058,25 @@ extern "C" {
 
   MutexManager::~MutexManager()
   {
+  }
+
+  SignalGuard::SignalGuard()
+  {
+    MachineSuspendSignals(&sigstate);
+  }
+
+  SignalGuard::~SignalGuard()
+  {
+    MachineResumeSignals(&sigstate);
+  }
+
+  void SignalGuard::lock()
+  {
+    MachineSuspendSignals(&sigstate);
+  }
+
+  void SignalGuard::release()
+  {
+    MachineResumeSignals(&sigstate);
   }
 }
