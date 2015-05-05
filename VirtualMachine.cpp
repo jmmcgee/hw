@@ -29,6 +29,7 @@ extern "C" {
       bool ismainthread;
 
       SMachineContext mcnxt;
+      bool signalsOn;
 
       TVMThreadEntry entry;
       void* param;
@@ -50,6 +51,10 @@ extern "C" {
       TVMThreadState getState();
       TVMThreadPriority getPrio();
       SMachineContextRef getMcnxtRef();
+      TMachineSignalState disable();
+      void enableSignals();
+      void disableSignals();
+      void restoreSignals();
 
       void activate();
       void terminate();
@@ -110,6 +115,19 @@ extern "C" {
       TVMStatus requestFileClose(int filedescriptor);
   };
 
+  class SignalGuard
+  {
+    public:
+      ThreadControlBlock* thread;
+      bool released;
+
+      SignalGuard(ThreadControlBlock* t);
+      ~SignalGuard();
+
+      void lock();
+      void unlock();
+  };
+
   class MutexManager
   {
     public:
@@ -120,17 +138,6 @@ extern "C" {
       ~MutexManager();
   };
 
-  class SignalGuard
-  {
-    public:
-      TMachineSignalState sigstate;
-
-      SignalGuard();
-      ~SignalGuard();
-
-      void lock();
-      void release();
-  };
 
   void MachineAlarmCallback(void *calldata);
 
@@ -275,92 +282,76 @@ extern "C" {
 
   TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
   {
-    TMachineSignalState sigstate;
-    MachineSuspendSignals(&sigstate);
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
 
     TVMMutexID mutex = mutexmanager->lastID+1;
 
     while(mutexmanager->mutexqueues.find(mutex) != mutexmanager->mutexqueues.end()) {
       mutex++;
-      if(mutex == mutexmanager->lastID) {
-        MachineResumeSignals(&sigstate);
+      if(mutex == mutexmanager->lastID) 
         return VM_STATUS_ERROR_INSUFFICIENT_RESOURCES;
-      }
     }
 
     *mutexref = mutex;
 
     mutexmanager->mutexqueues[mutex] = new std::deque<TVMThreadID>;
 
-    MachineResumeSignals(&sigstate);
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexDelete(TVMMutexID mutex)
   {
-    TMachineSignalState sigstate;
-    MachineSuspendSignals(&sigstate);
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
-    if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
-      MachineResumeSignals(&sigstate);
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    }
     q = mutexqueues_it->second;
 
     if(q == NULL ||
         !q->empty()
       )
-    {
-      MachineResumeSignals(&sigstate);
       return VM_STATUS_ERROR_INVALID_STATE;
-    }
 
     delete q;
     mutexmanager->mutexqueues.erase(mutexqueues_it);
 
-    MachineResumeSignals(&sigstate);
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   {
-    TMachineSignalState sigstate;
-    MachineSuspendSignals(&sigstate);
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
-    if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
-      MachineResumeSignals(&sigstate);
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    }
     q = mutexqueues_it->second;
 
-    if(ownerref == NULL) {
-      MachineResumeSignals(&sigstate);
+    if(ownerref == NULL)
       return VM_STATUS_ERROR_INVALID_PARAMETER;
-    }
-    if(q == NULL) {
-      MachineResumeSignals(&sigstate);
+    if(q == NULL)
       return VM_STATUS_ERROR_INVALID_STATE;
-    }
 
     if(q->empty())
       *ownerref = VM_THREAD_ID_INVALID;
     else
       *ownerref = q->front();
 
-    MachineResumeSignals(&sigstate);
     return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
   {
-    TMachineSignalState sigstate;
-    MachineSuspendSignals(&sigstate);
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
@@ -368,43 +359,34 @@ extern "C" {
     sprintf(buf, "Acquiring mutex... [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
     status(buf);
 
-    if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
-      MachineResumeSignals(&sigstate);
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    }
     q = mutexqueues_it->second;
 
-    if(q == NULL) {
-      MachineResumeSignals(&sigstate);
+    if(q == NULL)
       return VM_STATUS_ERROR_INVALID_STATE;
-    }
 
     if(q->empty()) {
       q->push_back(threadmanager->currentthread->getId());
       sprintf(buf, "Acquired mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
       status(buf);
-      MachineResumeSignals(&sigstate);
       return VM_STATUS_SUCCESS;
     }
 
     if(timeout == VM_TIMEOUT_IMMEDIATE) {
-      MachineResumeSignals(&sigstate);
       return VM_STATUS_FAILURE;
     }
     else if(timeout == VM_TIMEOUT_INFINITE) {
       q->push_back(mutex);
       threadmanager->pushToWaiting(threadmanager->currentthread);
-      MachineResumeSignals(&sigstate);
       threadmanager->replaceThread();
       if(q->front() != threadmanager->currentthread->getId()) {
         sprintf(buf, "Acquired mutex NOT? [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
         status(buf);
-        MachineResumeSignals(&sigstate);
         return VM_STATUS_FAILURE;
       }
       sprintf(buf, "Acquired mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
       status(buf);
-      MachineResumeSignals(&sigstate);
       return VM_STATUS_SUCCESS;
     }
     else {
@@ -417,40 +399,33 @@ extern "C" {
 
   TVMStatus VMMutexRelease(TVMMutexID mutex)
   {
-    TMachineSignalState sigstate;
-    MachineSuspendSignals(&sigstate);
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
 
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
     std::deque<TVMThreadID>* q;
 
     sprintf(buf, "Released mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
     status(buf);
-    if(mutexqueues_it == mutexmanager->mutexqueues.end()) {
-      MachineResumeSignals(&sigstate);
+    if(mutexqueues_it == mutexmanager->mutexqueues.end())
       return VM_STATUS_ERROR_INVALID_ID;
-    }
     q = mutexqueues_it->second;
 
     if(q == NULL ||
         q->empty() ||
         q->front() != threadmanager->currentthread->getId()
       )
-    {
-      MachineResumeSignals(&sigstate);
       return VM_STATUS_ERROR_INVALID_STATE;
-    }
 
     q->pop_front();
     if(!q->empty()) {
       ThreadControlBlock* newthread = threadmanager->findThread(q->front());
       threadmanager->popFromWaiting(newthread);
       threadmanager->pushToReady(newthread);
-      MachineResumeSignals(&sigstate);
       threadmanager->replaceThread();
     }
     sprintf(buf, "Released mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
     status(buf);
-    MachineResumeSignals(&sigstate);
     return VM_STATUS_SUCCESS;
   }
 
@@ -604,6 +579,7 @@ extern "C" {
 
   ThreadControlBlock::ThreadControlBlock(bool ismainthread):
     ismainthread(ismainthread),
+    signalsOn(true),
     call(0),
     stackaddr(0),
     id(1),
@@ -615,6 +591,7 @@ extern "C" {
 
   ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMemorySize memsize, TVMThreadPriority prio, TVMThreadID id):
     ismainthread(false),
+    signalsOn(true),
     entry(entry),
     param(param),
     call(0),
@@ -651,6 +628,26 @@ extern "C" {
   SMachineContextRef ThreadControlBlock::getMcnxtRef()
   {
     return &mcnxt;
+  }
+
+  void ThreadControlBlock::enableSignals()
+  {
+    MachineEnableSignals();
+    signalsOn = true;
+  }
+
+  void ThreadControlBlock::disableSignals()
+  {
+    MachineSuspendSignals(NULL);
+    signalsOn = false;
+  }
+
+  void ThreadControlBlock::restoreSignals()
+  {
+    if(signalsOn)
+      enableSignals();
+    else
+      disableSignals();
   }
 
   void ThreadControlBlock::activate()
@@ -718,6 +715,31 @@ extern "C" {
     (_call->entry)(_call->param);
 
     VMThreadTerminate(_call->threadid);
+  }
+
+  SignalGuard::SignalGuard(ThreadControlBlock *t)
+    : thread(t),
+    released(false)
+  {
+  }
+
+  SignalGuard::~SignalGuard()
+  {
+    if(!released)
+      unlock();
+  }
+
+  void SignalGuard::lock()
+  {
+    if(thread)
+      thread->disableSignals();
+  }
+
+  void SignalGuard::unlock()
+  {
+    if(thread)
+      thread->enableSignals();
+    released = true;
   }
 
   ThreadManager::ThreadManager():
@@ -810,6 +832,9 @@ extern "C" {
 
   void ThreadManager::replaceThread()
   {
+    SignalGuard signalGuard(threadmanager->currentthread);
+    signalGuard.lock();
+
     ThreadControlBlock *newthread = 0, *oldthread;
     TVMThreadPriority currentprio = currentthread->getPrio();
     TVMThreadState currentstate = currentthread->getState();
@@ -846,7 +871,9 @@ extern "C" {
     sprintf(buf, "replaceThread oldthread=%d, newthread=%d", oldthread->id, newthread->id);
     status(buf);
 
+    currentthread->restoreSignals();
     MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
+    signalGuard.unlock();
   }
 
   void ThreadManager::popFromAll(ThreadControlBlock* thread)
@@ -1060,23 +1087,4 @@ extern "C" {
   {
   }
 
-  SignalGuard::SignalGuard()
-  {
-    MachineSuspendSignals(&sigstate);
-  }
-
-  SignalGuard::~SignalGuard()
-  {
-    MachineResumeSignals(&sigstate);
-  }
-
-  void SignalGuard::lock()
-  {
-    MachineSuspendSignals(&sigstate);
-  }
-
-  void SignalGuard::release()
-  {
-    MachineResumeSignals(&sigstate);
-  }
 }
