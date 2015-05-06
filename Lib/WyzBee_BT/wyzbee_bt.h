@@ -5,6 +5,11 @@
 #ifndef WyzBee_BT_h
 #define WyzBee_BT_h
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+
 
 #include <rsi_bt_generic.h>
 #include <rsi_bt_global.h>
@@ -74,5 +79,9 @@ uint16 WyzBee_BT_AcceptSppConnect (void);
 uint16 WaitForSPPConnComplete (void);
 
 uint16 WyzBee_GetInquiryResults (RSI_BT_EVENT_INQUIRY_RESPONSE  *p_scan_res, uint8 size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
