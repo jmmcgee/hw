@@ -20,6 +20,11 @@ class MemoryManager
     std::map<TVMMemoryPoolID, MemoryPool*> pools;
 
   public:
+    static MemoryManager* get();
+
+    MemoryManager();
+    ~MemoryManager();
+
     MemoryPool* getPool(TVMMemoryPoolID id);
     TVMMemoryPoolID createPool(void* base, TVMMemorySize size);
     TVMStatus deletePool(TVMMemoryPoolID id);
@@ -35,6 +40,9 @@ class MemoryPool
     std::map<void*, TVMMemorySize> allocations;
 
   public:
+    MemoryPool(void* base, TVMMemorySize size);
+    ~MemoryPool();
+
     TVMMemoryPoolID getId();
     TVMMemorySize getSize();
 
