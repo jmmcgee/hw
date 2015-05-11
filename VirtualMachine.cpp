@@ -152,8 +152,9 @@ extern "C" {
 
   /** VM Thread API **/
 
-
-  TVMStatus VMStart(int tickms, int machinetickms, int argc, char *argv[])
+  extern TVMMainEntry VMLoadModule(const char *module);
+  TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
+      TVMMemorySize sharedsize, int argc, char *argv[])
   {
     MachineInitialize(machinetickms);
     MachineEnableSignals();
