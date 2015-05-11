@@ -12,39 +12,63 @@
 int n = 0;
 int main()
 {
+	char buf[336] = {0};	
+	RSI_BT_EVENT_INQUIRY_RESPONSE* res;
+	uint8 size = 5;
+	res = new RSI_BT_EVENT_INQUIRY_RESPONSE[5];
+	int ret[10] = {0};
+
   initOled();
   sys_ticks_init();
   WyzBee_BT_init();
 	WyzBee_SetLocalName((uint8_t*)"jmmcgee-071");
-	
-	char buf[336] = {0};
 
+	// Get Name
 	WyzBee_GetLocalName((uint8_t*)buf);
   n = strlen(buf);
-	
-	int ret[4] = {0};
-	ret[0] = WyzBee_SetDiscoverMode(1, 100);
+
+	// Set Discoverable, Connectable, Init
+	ret[0] = WyzBee_SetDiscoverMode(1, 500);
 	ret[1] = WyzBee_SetConnMode(1);
 	ret[2] = WyzBee_InitSppProfile();
+	
+	setColor(R);
 
-	RSI_BT_EVENT_INQUIRY_RESPONSE* res;
-	uint8 size = 10;
-	res = new RSI_BT_EVENT_INQUIRY_RESPONSE[5];
-
+	// Find Devices
 	ret[3] = WyzBee_GetInquiryResults(res, size);
 
+	setColor(R_OFF);
+	setColor(G);
+	
+	// Print Available Devices
 	n += sprintf(buf+n, "\n");
 	for(int i = 0; i < size; i++) {
 		n += sprintf(buf+n, "%d) %s\n", i, res->RemoteDeviceName);
 	}
 
-	n += sprintf(buf+n, "\nret:");
-	for(int i = 0; i < 4; i++)
-		n += sprintf(buf+n, " %d", ret[i]);
-	n += sprintf(buf+n, "\n");
-	oled.writeString(buf, n);
+	setColor(G_OFF);
+	setColor(B);
+	
+	// Choose device and print Address
+	int deviceNum = 0;
+	uint8_t bt_str[18] = {0};
+	BT_BDAddrToStr((res+deviceNum)->BDAddress, bt_str);
+	n += sprintf(buf+n, "%s\n", bt_str);
 
-	//WyzBee_SetConnMode
-	//WyzBee_InitSppProfile
-	//WyzBee_GetInquiryResults
+	setColor(B_OFF);
+	setColor(ON);
+
+	// Connect
+	ret[4] = WyzBee_SPPConnet(bt_str);
+	ret[5] = WaitForSPPConnComplete();
+
+	setColor(OFF);
+
+	// Print return values
+	n += sprintf(buf+n, "\nret:");
+	for(int i = 0; i < 5; i++)
+    n += sprintf(buf+n, " %d", ret[i]);
+	n += sprintf(buf+n, "\n");
+	
+	oled.writeString(buf, n);
 }
