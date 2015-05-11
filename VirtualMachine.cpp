@@ -494,18 +494,30 @@ extern "C" {
 
   TVMStatus VMMemoryPoolCreate(void *base, TVMMemorySize size, TVMMemoryPoolIDRef memory)
   {
-    return VM_STATUS_FAILURE;
+    if (!base || !size || !memory) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    *memory = memorymanager->createPool(base, size);
+
+    return VM_STATUS_SUCCESS;
   }
 
   TVMStatus VMMemoryPoolDelete(TVMMemoryPoolID memory)
   {
-    return VM_STATUS_FAILURE;
+    return memorymanager->deletePool(memory);
   }
 
   TVMStatus VMMemoryPoolQuery(TVMMemoryPoolID memory, TVMMemorySizeRef bytesleft)
   {
-    return VM_STATUS_FAILURE;
-  }
+    if (!bytesleft) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    MemoryPool* pool = memorymanager->getPool(memory);
+
+    if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    *bytesleft = pool->query();
+
+    return VM_STATUS_SUCCESS;
+}
 
   TVMStatus VMMemoryPoolAllocate(TVMMemoryPoolID memory, TVMMemorySize size, void **pointer)
   {
@@ -520,7 +532,13 @@ extern "C" {
 
   TVMStatus VMMemoryPoolDeallocate(TVMMemoryPoolID memory, void *pointer)
   {
-    return VM_STATUS_FAILURE;
+    if (!pointer) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    MemoryPool* pool = memorymanager->getPool(memory);
+
+    if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    return pool->deallocate(pointer);
   }
 
 

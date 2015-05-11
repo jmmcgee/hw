@@ -58,6 +58,7 @@ class MemoryPool
     TVMMemorySize query();
     TVMStatus allocate(TVMMemorySize size, void ** memory);
     TVMStatus deallocate(void* memory);
+    bool canDelete();
 };
 
 #ifdef __cplusplus
