@@ -148,6 +148,7 @@ extern "C" {
 
   ThreadManager *threadmanager = new ThreadManager;
   MutexManager *mutexmanager = new MutexManager;
+  MemoryManager *memorymanager = MemoryManager::get();
   char buf[1024];
 
 
@@ -158,6 +159,7 @@ extern "C" {
       TVMMemorySize sharedsize, int argc, char *argv[])
   {
     MachineInitialize(machinetickms);
+    memorymanager->initializeMainPool(heapsize);
     MachineEnableSignals();
     MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
@@ -291,7 +293,7 @@ extern "C" {
 
     while(mutexmanager->mutexqueues.find(mutex) != mutexmanager->mutexqueues.end()) {
       mutex++;
-      if(mutex == mutexmanager->lastID) 
+      if(mutex == mutexmanager->lastID)
         return VM_STATUS_ERROR_INSUFFICIENT_RESOURCES;
     }
 
@@ -487,10 +489,48 @@ extern "C" {
   }
 
 
+  /** VM Memory API **/
+
+
+  TVMStatus VMMemoryPoolCreate(void *base, TVMMemorySize size, TVMMemoryPoolIDRef memory)
+  {
+    return VM_STATUS_FAILURE;
+  }
+
+  TVMStatus VMMemoryPoolDelete(TVMMemoryPoolID memory)
+  {
+    return VM_STATUS_FAILURE;
+  }
+
+  TVMStatus VMMemoryPoolQuery(TVMMemoryPoolID memory, TVMMemorySizeRef bytesleft)
+  {
+    return VM_STATUS_FAILURE;
+  }
+
+  TVMStatus VMMemoryPoolAllocate(TVMMemoryPoolID memory, TVMMemorySize size, void **pointer)
+  {
+    if (!size || !pointer) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    MemoryPool* pool = memorymanager->getPool(memory);
+
+    if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
+
+    return pool->allocate(size, pointer);
+  }
+
+  TVMStatus VMMemoryPoolDeallocate(TVMMemoryPoolID memory, void *pointer)
+  {
+    return VM_STATUS_FAILURE;
+  }
+
+
   /** VM Thread Scheduler **/
 
+  bool STDERR_DEBUG = false;
 
   void printQueue(std::deque<ThreadControlBlock*>* q) {
+    if (!STDERR_DEBUG) return;
+
     using namespace std;
     if(q==NULL)
       return;
@@ -501,6 +541,8 @@ extern "C" {
   }
   void status(const char* msg)
   {
+    if (!STDERR_DEBUG) return;
+
     static int i =0;
     std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it;
     std::deque<TVMThreadID>* q;

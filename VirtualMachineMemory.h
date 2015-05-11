@@ -12,18 +12,26 @@ extern "C" {
 class MemoryPool;
 class MemoryManager;
 
+typedef std::pair<TVMMemoryPoolID, MemoryPool*> pair_poolid_poolref;
+typedef std::pair<void*, TVMMemorySize> pair_ptr_size;
+
 class MemoryManager
 {
   private:
     static MemoryManager* ref;
 
+    void* mainheap;
+
     std::map<TVMMemoryPoolID, MemoryPool*> pools;
+    size_t poolcount;
 
   public:
     static MemoryManager* get();
 
     MemoryManager();
     ~MemoryManager();
+
+    void initializeMainPool(TVMMemorySize size);
 
     MemoryPool* getPool(TVMMemoryPoolID id);
     TVMMemoryPoolID createPool(void* base, TVMMemorySize size);
@@ -36,11 +44,11 @@ class MemoryPool
     TVMMemoryPoolID id;
 
     void* base;
-    TVMMemorySize size;
+    TVMMemorySize basesize;
     std::map<void*, TVMMemorySize> allocations;
 
   public:
-    MemoryPool(void* base, TVMMemorySize size);
+    MemoryPool(TVMMemoryPoolID id, void* base, TVMMemorySize size);
     ~MemoryPool();
 
     TVMMemoryPoolID getId();
@@ -57,4 +65,3 @@ class MemoryPool
 #endif
 
 #endif
-
