@@ -8,6 +8,7 @@
 
 #include "Machine.h"
 #include "VirtualMachine.h"
+#include "VirtualMachineMemory.h"
 
 
 
