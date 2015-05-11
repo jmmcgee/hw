@@ -14,6 +14,7 @@ APPDIR=./apps
 
 OBJS=$(OBJDIR)/Machine.o \
      $(OBJDIR)/VirtualMachineUtils.o \
+     $(OBJDIR)/VirtualMachineMemory.o \
      $(OBJDIR)/VirtualMachine.o \
      $(OBJDIR)/main.o
 
@@ -54,7 +55,7 @@ apps: $(BINDIR)/hello.so $(BINDIR)/sleep.so $(BINDIR)/file.so $(BINDIR)/thread.s
 
 $(BINDIR)/vm: $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $(BINDIR)/vm
-	
+
 FORCE: ;
 
 #
@@ -68,7 +69,7 @@ $(APPDIR)/%.o : $(APPDIR)/%.c
 
 $(APPDIR)/%.o : $(APPDIR)/%.cpp 
 	$(CXX) -c $(APPCFLAGS) $(CPPFLAGS) $< -o $@
-	
+
 $(OBJDIR)/%.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
@@ -80,5 +81,5 @@ $(OBJDIR)/%.o : %.cpp
 clean::
 	-rm $(OBJDIR)/*.o 
 	-rm $(APPDIR)/*.o    
-	
+ 
 .PHONY: clean
