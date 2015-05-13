@@ -8,6 +8,11 @@
 
 #include "lab2_int.h"
 
+void master();
+void slave();
+const char* master_str = "00:23:A7:80:59:ED"; // 71
+const char* slave_str = "00:23:A7:80:59:95"; // 041
+
 void printDevices();
 void printRetVals(char* buf, int& n);
 void flush();
@@ -24,74 +29,97 @@ int main()
   initOled();
   sys_ticks_init();
   WyzBee_BT_init();
-	WyzBee_SetLocalName((uint8_t*)name);
+  WyzBee_SetLocalName((uint8_t*)name);
 
-	// Get Name
-	WyzBee_GetLocalName((uint8_t*)buf);
+  // Get Name and Local Address
+  WyzBee_GetLocalName((uint8_t*)buf+n);
   n = strlen(buf);
-	n += sprintf(buf+n, "\n");
-	flush();
-	
-	// Set Discoverable, Connectable, Init
-	ret[0] = WyzBee_SetDiscoverMode(1, 500);
-	ret[1] = WyzBee_SetConnMode(1);
-	ret[2] = WyzBee_InitSppProfile();
-	flush();
-	
-	setColor(R);
+  n += sprintf(buf+n, "\n");
 
-	// Find Devices
-	ret[3] = WyzBee_GetInquiryResults(res, NUM_DEVICES);
-	printDevices();
-	flush();
+  WyzBee_GetLocalBDAddress((uint8_t*)buf+n);
+  n = strlen(buf);
+  n += sprintf(buf+n, "\n");
+  flush();
 
-	setColor(R_OFF);
-	setColor(G);
+  // Set Discoverable, Connectable, Init
+  ret[0] = WyzBee_SetDiscoverMode(1, 500);
+  ret[1] = WyzBee_SetConnMode(1);
+  ret[2] = WyzBee_InitSppProfile();
+  flush();
 
-	
-	// Choose device and print Address
-	int deviceNum = 0;
-	uint8_t bt_str[18] = {0};
-	BT_BDAddrToStr((res+deviceNum)->BDAddress, bt_str);
-	n += sprintf(buf+n, "%s\n", bt_str);
-	flush();
+  slave();
+}
 
-	setColor(G_OFF);
-	setColor(B);
 
-	// Connect
-	ret[4] = WyzBee_SPPConnet(bt_str);
-	flush();
-	
-	setColor(B_OFF);
-	setColor(ON);
+void master()
+{
+  setColor(R);
 
-	ret[5] = WaitForSPPConnComplete();
-	flush();
+  // Choose device and print Address
+  n += sprintf(buf+n, "%s\n", slave_str);
+  flush();
 
-	setColor(OFF);	
+  setColor(R_OFF);
+  setColor(B);
+
+  // Connect
+  ret[4] = WyzBee_SPPConnet((uint8_t*)slave_str);
+  flush();
+
+  setColor(B_OFF);
+  setColor(ON);
+
+  ret[5] = WaitForSPPConnComplete();
+  flush();
+
+  setColor(OFF);
+}
+
+void slave()
+{
+  setColor(R);
+
+  // Choose device and print Address
+  n += sprintf(buf+n, "%s\n", master_str);
+  flush();
+
+  setColor(R_OFF);
+  setColor(B);
+
+  // Connect
+  //ret[4] = WyzBee_SPPConnet(master_str);
+  flush();
+
+  setColor(B_OFF);
+  setColor(ON);
+
+  ret[5] = WaitForSPPConnComplete();
+  flush();
+
+  setColor(OFF);
 }
 
 void printDevices()
 {
-	// Print Available Devices
-	for(int i = 0; i < NUM_DEVICES; i++) {
-		n += sprintf(buf+n, "%d) %s\n", i, res->RemoteDeviceName);
-	}
+  // Print Available Devices
+  for(int i = 0; i < NUM_DEVICES; i++) {
+    n += sprintf(buf+n, "%d) %s\n", i, res->RemoteDeviceName);
+  }
 }
 
 void printRetVals()
 {
-	// Print return values
-	n += sprintf(buf+n, "ret:");
-	for(int i = 0; i < 5; i++)
+  // Print return values
+  n += sprintf(buf+n, "ret:");
+  for(int i = 0; i < 5; i++)
     n += sprintf(buf+n, " %d", ret[i]);
 }
 
 void flush()
 {
-	printRetVals();
-	oled.setCursor(0,oled.getCursorY());
-	oled.writeString(buf, n);
-	n = 0;
+  printRetVals();
+  oled.setCursor(0,oled.getCursorY());
+  oled.writeString(buf, n);
+  n = 0;
 }
+
