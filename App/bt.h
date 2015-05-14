@@ -1,7 +1,7 @@
 #ifndef BT_H
 #define BT_H
 
-int bt_init();
+int bt_init(const char* name);
 void master();
 void slave();
 

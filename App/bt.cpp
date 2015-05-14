@@ -7,6 +7,7 @@
 #include <WyzBee_gpio.h>
 #include <WyzBee_bt.h>
 #include <WyzBee_spi.h>
+#include <timetick.h>
 
 #include "main.h"
 #include "remote.h"
@@ -19,7 +20,7 @@ int ret[10] = {9};
 uint8_t data[128] = {0};
 uint16_t data_len = 0;
 
-int bt_init()
+int bt_init(const char* name)
 {
   initOled();
   sys_ticks_init();
@@ -106,7 +107,7 @@ void slave()
     setColor(ON);
     data_len = 1;
     WyzBee_SPPReceive(data, data_len);
-    oled.setCursor(0,0);
+    oled.setCursor(0,8*5);
     oled.writeString((char*)data, data_len);
     setColor(OFF);
   }
