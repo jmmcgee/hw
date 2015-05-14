@@ -1,4 +1,4 @@
-#include "lab2_int.h"
+#include "remote.h"
 
 #include <base_types.h>
 
@@ -22,7 +22,7 @@ volatile char key = 0;
 
 Adafruit_SSD1351 oled = Adafruit_SSD1351(); //@  OLED class variable
 
-  int initOled()
+int initOled()
 {
   WyzBeeSpi_Config  config_stc={
     4000000,
