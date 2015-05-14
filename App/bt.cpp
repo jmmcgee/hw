@@ -16,6 +16,8 @@
 RSI_BT_EVENT_INQUIRY_RESPONSE res[NUM_DEVICES];
 
 int ret[10] = {9};
+uint8_t data[128] = {0};
+uint16_t data_len = 0;
 
 int bt_init()
 {
@@ -62,6 +64,16 @@ void master()
   ret[5] = WaitForSPPConnComplete();
   flush();
 
+  data[0] = 0;
+  while(1)
+  {
+    setColor(ON);
+    data_len = 1;
+    WyzBee_SPPTransfer((uint8_t*)slave_str, &data[0], data_len);
+    data[0]++;
+    setColor(OFF);
+  }
+
   setColor(OFF);
 }
 
@@ -87,6 +99,17 @@ void slave()
   flush();
 
   setColor(OFF);
+
+  while(1)
+  {
+    while(!!WyzBeeGpio_Get(4E));
+    setColor(ON);
+    data_len = 1;
+    WyzBee_SPPReceive(data, data_len);
+    oled.setCursor(0,0);
+    oled.writeString((char*)data, data_len);
+    setColor(OFF);
+  }
 }
 
 void printDevices()
