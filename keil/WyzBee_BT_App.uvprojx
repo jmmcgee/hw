@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\common;..\Lib\BSP;..\Lib\BSP\driver;..\Lib\IR_Library\inc;..\Lib\rsi_bt_apis\core\include;..\Lib\rsi_wifi_apis\ref_apps\include;..\Lib\rsi_wifi_apis\hal\include;..\Lib\rsi_wifi_apis\hal\SPI;..\Lib\rsi_wifi_apis\intf\spi\include;..\Lib\WyzBee_oled;..\Lib\WyzBee_SPI;..\Lib\BSP\driver\dt;..\Lib\BSP\driver\gpio;..\Lib\BSP\driver\mfs;..\Lib\rsi_wifi_apis\core\include;..\Lib\rsi_bt_apis\ref_apps\include;..\Lib\BSP\driver\exint;..\Lib\WyzBee_BT</IncludePath>
+              <IncludePath>..\common;..\Lib\BSP;..\Lib\BSP\driver;..\Lib\IR_Library\inc;..\Lib\rsi_bt_apis\core\include;..\Lib\rsi_wifi_apis\ref_apps\include;..\Lib\rsi_wifi_apis\hal\include;..\Lib\rsi_wifi_apis\hal\SPI;..\Lib\rsi_wifi_apis\intf\spi\include;..\Lib\WyzBee_oled;..\Lib\WyzBee_SPI;..\Lib\BSP\driver\dt;..\Lib\BSP\driver\gpio;..\Lib\BSP\driver\mfs;..\Lib\rsi_wifi_apis\core\include;..\Lib\rsi_bt_apis\ref_apps\include;..\Lib\BSP\driver\exint;..\Lib\WyzBee_BT;..\Lib\WyzBee_ext</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -429,14 +429,29 @@
               <FilePath>..\App\main.cpp</FilePath>
             </File>
             <File>
-              <FileName>lab2_int.cpp</FileName>
+              <FileName>bt.cpp</FileName>
               <FileType>8</FileType>
-              <FilePath>..\App\lab2_int.cpp</FilePath>
+              <FilePath>..\App\bt.cpp</FilePath>
             </File>
             <File>
-              <FileName>lab2_int.h</FileName>
+              <FileName>bt.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\App\lab2_int.h</FilePath>
+              <FilePath>..\App\bt.h</FilePath>
+            </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\App\main.h</FilePath>
+            </File>
+            <File>
+              <FileName>remote.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\App\remote.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>remote.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\App\remote.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -672,6 +687,21 @@
               <FileName>wyzbee_bt.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Lib\WyzBee_BT\wyzbee_bt.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>WyzBee_ext</GroupName>
+          <Files>
+            <File>
+              <FileName>WyzBee_ext.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Lib\WyzBee_ext\WyzBee_ext.c</FilePath>
+            </File>
+            <File>
+              <FileName>WyzBee_ext.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Lib\WyzBee_ext\WyzBee_ext.h</FilePath>
             </File>
           </Files>
         </Group>
