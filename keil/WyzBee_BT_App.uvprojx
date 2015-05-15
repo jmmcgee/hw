@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\common;..\Lib\BSP;..\Lib\BSP\driver;..\Lib\IR_Library\inc;..\Lib\rsi_bt_apis\core\include;..\Lib\rsi_wifi_apis\ref_apps\include;..\Lib\rsi_wifi_apis\hal\include;..\Lib\rsi_wifi_apis\hal\SPI;..\Lib\rsi_wifi_apis\intf\spi\include;..\Lib\WyzBee_oled;..\Lib\WyzBee_SPI;..\Lib\BSP\driver\dt;..\Lib\BSP\driver\gpio;..\Lib\BSP\driver\mfs;..\Lib\rsi_wifi_apis\core\include;..\Lib\rsi_bt_apis\ref_apps\include;..\Lib\BSP\driver\exint;..\Lib\WyzBee_BT;..\Lib\WyzBee_ext</IncludePath>
+              <IncludePath>..\common;..\Lib\BSP;..\Lib\BSP\driver;..\Lib\IR_Library\inc;..\Lib\rsi_bt_apis\core\include;..\Lib\rsi_wifi_apis\ref_apps\include;..\Lib\rsi_wifi_apis\hal\include;..\Lib\rsi_wifi_apis\hal\SPI;..\Lib\rsi_wifi_apis\intf\spi\include;..\Lib\WyzBee_oled;..\Lib\WyzBee_SPI;..\Lib\BSP\driver\dt;..\Lib\BSP\driver\gpio;..\Lib\BSP\driver\mfs;..\Lib\rsi_wifi_apis\core\include;..\Lib\rsi_bt_apis\ref_apps\include;..\Lib\BSP\driver\exint;..\Lib\WyzBee_BT;..\Lib\WyzBee_ext;..\Lib\WyzBee_timer</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -702,6 +702,21 @@
               <FileName>WyzBee_ext.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Lib\WyzBee_ext\WyzBee_ext.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>WyzBee_timer</GroupName>
+          <Files>
+            <File>
+              <FileName>WyzBee_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Lib\WyzBee_timer\WyzBee_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>WyzBee_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Lib\WyzBee_timer\WyzBee_timer.h</FilePath>
             </File>
           </Files>
         </Group>
