@@ -30,7 +30,11 @@ int main()
     initTimer();
   }
 
-  if(hasBT && isMaster) {
+	if(!hasBT)
+		while(1)
+			updateIR();
+
+  if(isMaster) {
     bt_init("jmm-master");
     const char* target_addr_str = BT_067;
     master(target_addr_str);
@@ -38,21 +42,21 @@ int main()
     data[0] = 0;
     while(1) {
       setColor(G);
+			updateIR();
+
       data_len = 1;
       ret = WyzBee_SPPTransfer((uint8_t*)target_addr_str, &data[0], data_len);
 
-      n = 0;
       n += sprintf(buf+n, "%ret: %4d\n", ret);
       n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
-      oled.setCursor(0,8*5);
-      oled.writeString(buf, n);
+      flush(8*5);
 
       data[0]++;
       setColor(G_OFF);
       delay(1000);
     }
   }// master
-  else if(hasBT && !isMaster) {
+  else if(!isMaster) {
     bt_init("jmm-slave");
     slave();
 
@@ -63,13 +67,13 @@ int main()
       data_len = 1;
       ret = WyzBee_SPPReceive(data, data_len);
 
-      n = 0;
       n += sprintf(buf+n, "%ret: %4d\n", ret);
       n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
-      oled.setCursor(0,8*5);
-      oled.writeString(buf, n);
+      flush(8*5);
+
       setColor(G_OFF);
       delay(500);
     }
   } // slave
 } // */
+

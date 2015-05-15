@@ -19,8 +19,7 @@ volatile uint8_t bytes[NUM_BYTES] = {0};
 volatile uint32_t bytePos = 0;
 volatile uint32_t bytesReady = 0;
 
-volatile char key = 0;
-
+volatile char lastKey = 0;
 
 Adafruit_SSD1351 oled = Adafruit_SSD1351(); //@  OLED class variable
 
@@ -351,4 +350,24 @@ SWITCH:
   }
 
   return val;
+}
+
+int updateIR()
+{
+	char key = 0;
+	
+	readyByte();
+	
+	if(bytesReady > 3)
+		key = readInput();
+	if(key == 0 || key == ' ' || key == lastKey)
+		return -1;
+	
+	lastKey = key;
+	uint16_t xPos = oled.getCursorX();
+	uint16_t yPos = oled.getCursorY();
+	oled.setCursor(128-6,8*15);
+	oled.write(key);
+	oled.setCursor(xPos, yPos);
+	return 0;
 }

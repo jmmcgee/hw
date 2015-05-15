@@ -7,6 +7,6 @@ void slave();
 
 void printDevices();
 void printRetVals();
-void flush();
+void flush(int row = -1);
 
 #endif

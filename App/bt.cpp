@@ -82,10 +82,10 @@ void printRetVals()
     n += sprintf(buf+n, " %d", ret[i]);
 }
 
-void flush()
+void flush(int row)
 {
-  printRetVals();
-  oled.setCursor(0,oled.getCursorY());
+  //printRetVals();
+  oled.setCursor(0, (row == -1) ? oled.getCursorY() : row);
   oled.writeString(buf, n);
   n = 0;
 }

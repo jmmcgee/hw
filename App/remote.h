@@ -29,6 +29,7 @@ interval_t nextBit();
 int readyByte();
 uint8_t nextByte();
 char readInput();
+int updateIR();
 
 void reset();
 
