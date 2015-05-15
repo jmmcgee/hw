@@ -30,9 +30,9 @@ int main()
     initTimer();
   }
 
-	if(!hasBT)
-		while(1)
-			updateIR();
+  if(!hasBT)
+    while(1)
+      updateIR();
 
   if(isMaster) {
     bt_init("jmm-master");
@@ -42,13 +42,14 @@ int main()
     data[0] = 0;
     while(1) {
       setColor(G);
-			updateIR();
+      while(!updateIR());
 
+      data[0] = lastKey;
       data_len = 1;
       ret = WyzBee_SPPTransfer((uint8_t*)target_addr_str, &data[0], data_len);
 
-      n += sprintf(buf+n, "%ret: %4d\n", ret);
-      n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
+      //n += sprintf(buf+n, "%ret: %4d\n", ret);
+      //n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
       flush(8*5);
 
       data[0]++;

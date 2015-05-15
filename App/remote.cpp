@@ -8,7 +8,8 @@
 #include <WyzBee_spi.h>
 #include <SPI_OLED.h>
 
-#include <timetick.h>
+#include <timetick.c>
+#include <delay.h>
 
 volatile uint32_t intervals[NUM_INTERVALS] = {0};
 volatile uint32_t lastInterval = 0;
@@ -354,20 +355,33 @@ SWITCH:
 
 int updateIR()
 {
-	char key = 0;
-	
-	readyByte();
-	
-	if(bytesReady > 3)
-		key = readInput();
-	if(key == 0 || key == ' ' || key == lastKey)
-		return -1;
-	
-	lastKey = key;
-	uint16_t xPos = oled.getCursorX();
-	uint16_t yPos = oled.getCursorY();
-	oled.setCursor(128-6,8*15);
-	oled.write(key);
-	oled.setCursor(xPos, yPos);
-	return 0;
+  char key = 0;
+
+  readyByte();
+
+  if(bytesReady > 3)
+    key = readInput();
+  if(key == 0 || key == ' ' || key == lastKey)
+    return 0;
+
+  lastKey = key;
+  uint16_t xPos = oled.getCursorX();
+  uint16_t yPos = oled.getCursorY();
+  oled.setCursor(128-6,8*15);
+  oled.write(key);
+  oled.setCursor(xPos, yPos);
+  return 1;
+}
+
+int IRDelay(uint32_t ms)
+{
+  uint32_t start;
+
+  if (ms == 0)
+    return;
+
+  start = GetTickCount();
+  do {
+    updateIR();
+  } while (GetTickCount() - start < ms);
 }

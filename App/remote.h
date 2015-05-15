@@ -14,6 +14,7 @@ enum color_t {R, G, B, ON, R_OFF, G_OFF, B_OFF, OFF};
 enum interval_t {NOT_READY=-1, LOW=0, HIGH=1, BREAK=2, LONG=3};
 
 extern Adafruit_SSD1351 oled; //@  OLED class variable
+extern volatile char lastKey;
 
 
 int initOled();
@@ -30,6 +31,7 @@ int readyByte();
 uint8_t nextByte();
 char readInput();
 int updateIR();
+int IRDelay(uint32_t ms);
 
 void reset();
 
