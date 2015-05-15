@@ -2,7 +2,7 @@
 #define BT_H
 
 int bt_init(const char* name);
-void master();
+void master(const char* addr_str);
 void slave();
 
 void printDevices();

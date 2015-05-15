@@ -41,15 +41,15 @@ int bt_init(const char* name)
   flush();
 }
 
-void master()
+void master(const char* addr_str)
 {
   // Choose device and print Address
   setColor(R);
-  n += sprintf(buf+n, "%s\n", slave_str);
+  n += sprintf(buf+n, "%s\n", addr_str);
   flush();
 
   // Connect
-  ret[4] = WyzBee_SPPConnet((uint8_t*)slave_str);
+  ret[4] = WyzBee_SPPConnet((uint8_t*)addr_str);
   flush();
 
   ret[5] = WaitForSPPConnComplete();
@@ -59,12 +59,8 @@ void master()
 
 void slave()
 {
-  // Choose device and print Address
-  setColor(R);
-  n += sprintf(buf+n, "%s\n", master_str);
-  flush();
-
   // Connect
+  setColor(R);
   ret[5] = WaitForSPPConnComplete();
   flush();
   setColor(OFF);

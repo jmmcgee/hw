@@ -12,8 +12,9 @@ int n = 0;
 char buf[336] = {0};
 uint8_t data[128] = {0};
 uint16_t data_len = 0;
-const char* master_str = "00:23:A7:80:59:ED"; // 71, master
-const char* slave_str = "00:23:A7:80:59:F9"; // 990, slave
+
+#define BT_067 "00:23:A7:80:59:F9";
+#define BT_071 "00:23:A7:80:59:ED"
 
 int main()
 {
@@ -22,6 +23,7 @@ int main()
   bool hasIR = 1;
   bool hasBT = 1;
   bool isMaster = !!WyzBeeGpio_Get(4E);
+  uint16_t ret;
 
   if(hasIR) {
     initExtInt();
@@ -30,13 +32,21 @@ int main()
 
   if(hasBT && isMaster) {
     bt_init("jmm-master");
-    master();
+    const char* target_addr_str = BT_067;
+    master(target_addr_str);
 
     data[0] = 0;
     while(1) {
       setColor(G);
       data_len = 1;
-      WyzBee_SPPTransfer((uint8_t*)slave_str, &data[0], data_len);
+      ret = WyzBee_SPPTransfer((uint8_t*)target_addr_str, &data[0], data_len);
+
+      n = 0;
+      n += sprintf(buf+n, "%ret: %4d\n", ret);
+      n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
+      oled.setCursor(0,8*5);
+      oled.writeString(buf, n);
+
       data[0]++;
       setColor(G_OFF);
       delay(1000);
@@ -51,9 +61,13 @@ int main()
       while(!!WyzBeeGpio_Get(4E));
       setColor(G);
       data_len = 1;
-      WyzBee_SPPReceive(data, data_len);
+      ret = WyzBee_SPPReceive(data, data_len);
+
+      n = 0;
+      n += sprintf(buf+n, "%ret: %4d\n", ret);
+      n += sprintf(buf+n, "%c : %3d\n", data[0], data[0]);
       oled.setCursor(0,8*5);
-      oled.writeString((char*)data, data_len);
+      oled.writeString(buf, n);
       setColor(G_OFF);
       delay(500);
     }
