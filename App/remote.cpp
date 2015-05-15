@@ -3,9 +3,9 @@
 #include <base_types.h>
 
 #include <WyzBee_gpio.h>
-#include <WyzBee_spi.h>
-#include <WyzBee_timer.h>
 #include <WyzBee_ext.h>
+#include <WyzBee_timer.h>
+#include <WyzBee_spi.h>
 #include <SPI_OLED.h>
 
 #include <timetick.h>
@@ -48,13 +48,12 @@ int initOled()
   return 0;
 }
 
+static WyzBee_exint_config_t WyzBeeExtIntConfig;
 int initExtInt()
 {
-  WyzBee_exint_config_t WyzBeeExtIntConfig;
-
   //setup an IR interrupt
   WyzBee_PDL_ZERO(WyzBeeExtIntConfig);                      // zero struct
-  WyzBeeExtIntConfig.abEnable[EXT_PORT] = FALSE;            // INT2 ???
+  WyzBeeExtIntConfig.abEnable[EXT_PORT] = TRUE;            // INT2 ???
   WyzBeeExtIntConfig.aenLevel[EXT_PORT] = ExIntFallingEdge;  // set part of signal to detect
   WyzBeeExtIntConfig.apfnExintCallback[EXT_PORT] = &extInt; // set callback
   WyzBee_Exint_IR_Init(&WyzBeeExtIntConfig); // init IR interrupt
@@ -71,13 +70,13 @@ int initTimer()
   dt_Internal.u8PrescalerDiv = Dt_PrescalerDiv16;
   dt_Internal.u8CounterSize =  Dt_CounterSize32;
 
-  err = Dt_Init(&dt_Internal,2);
+  err = Dt_Init(&dt_Internal,Dt_Channel0);
   err = Dt_EnableCount(Dt_Channel0);
 }
 
 void extInt()
 {
-  static volatile uint8_t flag;
+  static volatile uint8_t flag = 0;
 
   if(!flag)
   {

@@ -1,7 +1,9 @@
-#include "main.h"
+//#include "main.h"
 
 #include <WyzBee_gpio.h>
 #include <WyzBee_bt.h>
+
+#include <delay.h>
 
 #include "bt.h"
 #include "remote.h"
@@ -17,10 +19,9 @@ int main()
 {
   initOled();
 
-  bool isMaster = 1;
+  bool hasIR = 1;
   bool hasBT = 1;
-  bool hasIR = 0;
-
+  bool isMaster = !!WyzBeeGpio_Get(4E);
 
   if(hasIR) {
     initExtInt();
@@ -33,11 +34,12 @@ int main()
 
     data[0] = 0;
     while(1) {
-      setColor(ON);
+      setColor(G);
       data_len = 1;
       WyzBee_SPPTransfer((uint8_t*)slave_str, &data[0], data_len);
       data[0]++;
-      setColor(OFF);
+      setColor(G_OFF);
+      delay(1000);
     }
   }// master
   else if(hasBT && !isMaster) {
@@ -47,12 +49,13 @@ int main()
     data[0] = 0;
     while(1) {
       while(!!WyzBeeGpio_Get(4E));
-      setColor(R);
+      setColor(G);
       data_len = 1;
       WyzBee_SPPReceive(data, data_len);
       oled.setCursor(0,8*5);
       oled.writeString((char*)data, data_len);
-      setColor(OFF);
+      setColor(G_OFF);
+      delay(500);
     }
   } // slave
-}
+} // */

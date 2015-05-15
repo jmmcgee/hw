@@ -47,15 +47,11 @@ void master()
   setColor(R);
   n += sprintf(buf+n, "%s\n", slave_str);
   flush();
-  setColor(R_OFF);
 
   // Connect
-  setColor(B);
   ret[4] = WyzBee_SPPConnet((uint8_t*)slave_str);
   flush();
-  setColor(B_OFF);
 
-  setColor(ON);
   ret[5] = WaitForSPPConnComplete();
   flush();
   setColor(OFF);
@@ -67,10 +63,8 @@ void slave()
   setColor(R);
   n += sprintf(buf+n, "%s\n", master_str);
   flush();
-  setColor(R_OFF);
 
   // Connect
-  setColor(ON);
   ret[5] = WaitForSPPConnComplete();
   flush();
   setColor(OFF);
