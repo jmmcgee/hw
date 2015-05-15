@@ -21,6 +21,8 @@ volatile uint32_t bytePos = 0;
 volatile uint32_t bytesReady = 0;
 
 volatile char lastKey = 0;
+volatile char printKey;
+volatile int inputTimeout; //how long has button been held
 
 Adafruit_SSD1351 oled = Adafruit_SSD1351(); //@  OLED class variable
 
@@ -202,6 +204,7 @@ int readyByte()
 
   bytes[(bytePos+bytesReady)%NUM_BYTES] = code;
   bytesReady++;
+  inputTimeout++;
   return 1;
 }
 
@@ -361,14 +364,33 @@ int updateIR()
 
   if(bytesReady > 3)
     key = readInput();
-  if(key == 0 || key == ' ' || key == lastKey)
+  if(key == 0 || key == ' ' || key == lastKey) {
+    if(inputTimeout >= INPUT_TIMEOUT_THRESH) {
+      inputTimeout = 0;  
+      lastKey = 0;
+    }
     return 0;
+  }
+
+  switch(key) {
+    case '0':
+      printKey--;
+      break;
+
+    case '2':
+      printKey++;
+      break;
+
+    default:
+      break;
+  }
 
   lastKey = key;
+  inputTimeout = 0;
   uint16_t xPos = oled.getCursorX();
   uint16_t yPos = oled.getCursorY();
   oled.setCursor(128-6,8*15);
-  oled.write(key);
+  oled.write(printKey);
   oled.setCursor(xPos, yPos);
   return 1;
 }
