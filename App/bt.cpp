@@ -17,12 +17,9 @@
 RSI_BT_EVENT_INQUIRY_RESPONSE res[NUM_DEVICES];
 
 int ret[10] = {9};
-uint8_t data[128] = {0};
-uint16_t data_len = 0;
 
 int bt_init(const char* name)
 {
-  initOled();
   sys_ticks_init();
   WyzBee_BT_init();
   WyzBee_SetLocalName((uint8_t*)name);
@@ -46,71 +43,37 @@ int bt_init(const char* name)
 
 void master()
 {
-  setColor(R);
-
   // Choose device and print Address
+  setColor(R);
   n += sprintf(buf+n, "%s\n", slave_str);
   flush();
-
   setColor(R_OFF);
-  setColor(B);
 
   // Connect
+  setColor(B);
   ret[4] = WyzBee_SPPConnet((uint8_t*)slave_str);
   flush();
-
   setColor(B_OFF);
-  setColor(ON);
 
+  setColor(ON);
   ret[5] = WaitForSPPConnComplete();
   flush();
-
-  data[0] = 0;
-  while(1)
-  {
-    setColor(ON);
-    data_len = 1;
-    WyzBee_SPPTransfer((uint8_t*)slave_str, &data[0], data_len);
-    data[0]++;
-    setColor(OFF);
-  }
-
   setColor(OFF);
 }
 
 void slave()
 {
-  setColor(R);
-
   // Choose device and print Address
+  setColor(R);
   n += sprintf(buf+n, "%s\n", master_str);
   flush();
-
   setColor(R_OFF);
-  setColor(B);
 
   // Connect
-  //ret[4] = WyzBee_SPPConnet(master_str);
-  //flush();
-
-  setColor(B_OFF);
   setColor(ON);
-
   ret[5] = WaitForSPPConnComplete();
   flush();
-
   setColor(OFF);
-
-  while(1)
-  {
-    while(!!WyzBeeGpio_Get(4E));
-    setColor(ON);
-    data_len = 1;
-    WyzBee_SPPReceive(data, data_len);
-    oled.setCursor(0,8*5);
-    oled.writeString((char*)data, data_len);
-    setColor(OFF);
-  }
 }
 
 void printDevices()
