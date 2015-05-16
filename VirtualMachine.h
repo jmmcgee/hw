@@ -37,7 +37,7 @@ typedef unsigned int TVMThreadPriority, *TVMThreadPriorityRef;
 typedef unsigned int TVMThreadState, *TVMThreadStateRef;
 typedef unsigned int TVMMemoryPoolID, *TVMMemoryPoolIDRef;
 
-#define VM_MEMORY_POOL_ID_SYSTEM               ((TVMMemoryPoolID)0)
+extern const TVMMemoryPoolID VM_MEMORY_POOL_ID_SYSTEM;
 #define VM_MEMORY_POOL_ID_INVALID               ((TVMMemoryPoolID)-1)
 
 typedef void (*TVMMainEntry)(int, char*[]);
@@ -80,3 +80,4 @@ TVMStatus VMFilePrint(int filedescriptor, const char *format, ...);
 #endif
 
 #endif
+

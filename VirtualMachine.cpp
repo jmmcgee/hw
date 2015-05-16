@@ -12,6 +12,11 @@
 
 
 
+const TVMMemoryPoolID VM_MEMORY_POOL_ID_SYSTEM = 0;
+extern "C" TVMMainEntry VMLoadModule(const char *module);
+
+
+
 extern "C" {
 
   void status(const char* msg = "");
@@ -158,7 +163,7 @@ extern "C" {
   TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
       TVMMemorySize sharedsize, int argc, char *argv[])
   {
-    MachineInitialize(machinetickms);
+    MachineInitialize(machinetickms, sharedsize);
     memorymanager->initializeMainPool(heapsize);
     MachineEnableSignals();
     MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
