@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+extern const TVMMemoryPoolID VM_MEMORY_POOL_ID_SYSTEM;
+extern const TVMMemoryPoolID VM_MEMORY_POOL_ID_SHARED;
 
 class MemoryPool;
 class MemoryManager;

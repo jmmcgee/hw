@@ -1,6 +1,9 @@
 #include "Machine.h"
 #include "VirtualMachineMemory.h"
 
+const TVMMemoryPoolID VM_MEMORY_POOL_ID_SYSTEM = 0;
+const TVMMemoryPoolID VM_MEMORY_POOL_ID_SHARED = 1;
+
 MemoryManager* MemoryManager::ref = NULL;
 
 MemoryManager* MemoryManager::get()

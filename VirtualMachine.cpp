@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <stdio.h>
+#include <string.h>
 
 #include <deque>
 #include <queue>
@@ -11,9 +12,8 @@
 #include "VirtualMachineMemory.h"
 
 
-
-const TVMMemoryPoolID VM_MEMORY_POOL_ID_SYSTEM = 0;
 extern "C" TVMMainEntry VMLoadModule(const char *module);
+void *sharedmemory;
 
 
 void status(const char* msg = "");
@@ -160,8 +160,9 @@ extern TVMMainEntry VMLoadModule(const char *module);
 TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
     TVMMemorySize sharedsize, int argc, char *argv[])
 {
-  MachineInitialize(machinetickms, sharedsize);
+  sharedmemory = MachineInitialize(machinetickms, sharedsize);
   memorymanager->initializeMainPool(heapsize);
+
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
@@ -1086,12 +1087,24 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
-  pushToWaiting(currentthread);
+  int bytesWritten = 0;
+  while(bytesWritten < *length) {
+    // could make decision more robust
+    int bytesToWrite = ( *length - bytesWritten >= 512) ? 512 : ( *length - bytesWritten );
 
-  MachineFileWrite(filedescriptor, data, *length, requestFileOperationCallback, &calldata);
-  replaceThread();
+    memcpy(sharedmemory, (uint8_t*)data + bytesWritten, calldata.result);
 
-  if (calldata.result >= 0) *length = *length - calldata.result;
+    pushToWaiting(currentthread);
+    MachineFileWrite(filedescriptor, sharedmemory, bytesToWrite, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    bytesWritten += calldata.result;
+  }
+
+  if(bytesWritten != *length)
+    std::cout << "WTF!!!! bytesWriten != length\n" << std::flush;
+
+  if (calldata.result >= 0) *length = bytesWritten;
 
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
@@ -1120,10 +1133,23 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
 
   pushToWaiting(currentthread);
 
-  MachineFileRead(filedescriptor, data, *length, requestFileOperationCallback, &calldata);
-  replaceThread();
+  int bytesRead = 0;
+  while(bytesRead < *length) {
+    int bytesToRead = ( *length - bytesRead >= 512 ) ? 512 : ( *length - bytesRead );
 
-  if (calldata.result >= 0) *length = *length - calldata.result;
+    pushToWaiting(currentthread);
+    MachineFileWrite(filedescriptor, sharedmemory, bytesToRead, requestFileOperationCallback, &calldata);
+    replaceThread();
+
+    memcpy((uint8_t*)data + bytesRead, sharedmemory, calldata.result);
+
+    bytesRead += calldata.result;
+  }
+
+  if(bytesRead != *length)
+    std::cout << "WTF!!!! bytesRead != length\n" << std::flush;
+
+  if (calldata.result >= 0) *length = bytesRead;
 
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
@@ -1142,8 +1168,8 @@ TVMStatus ThreadManager::requestFileClose(int filedescriptor)
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
 
-  MutexManager::MutexManager()
-: lastID(0)
+MutexManager::MutexManager() :
+  lastID(0)
 {
 }
 
