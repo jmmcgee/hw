@@ -14,6 +14,7 @@
 
 extern "C" TVMMainEntry VMLoadModule(const char *module);
 void *sharedmemory;
+int sharedsize;
 
 
 void status(const char* msg = "");
@@ -158,9 +159,10 @@ char buf[1024];
 
 extern TVMMainEntry VMLoadModule(const char *module);
 TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
-    TVMMemorySize sharedsize, int argc, char *argv[])
+    TVMMemorySize ssize, int argc, char *argv[])
 {
-  sharedmemory = MachineInitialize(machinetickms, sharedsize);
+  sharedmemory = MachineInitialize(machinetickms, ssize);;
+  sharedsize = ssize;
   memorymanager->initializeMainPool(heapsize);
 
   MachineEnableSignals();
