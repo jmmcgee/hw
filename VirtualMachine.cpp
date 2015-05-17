@@ -164,6 +164,9 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   sharedmemory = MachineInitialize(machinetickms, ssize);;
   sharedsize = ssize;
   memorymanager->initializeMainPool(heapsize);
+  fprintf(stderr, "heapsize: %d\n", heapsize);
+  fprintf(stderr, "sharedsize: %d\n", sharedsize);
+  fprintf(stderr, "sharedmem: %0x\n", sharedmemory);
 
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
@@ -1094,11 +1097,14 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
     // could make decision more robust
     int bytesToWrite = ( *length - bytesWritten >= 512) ? 512 : ( *length - bytesWritten );
 
-    memcpy(sharedmemory, (uint8_t*)data + bytesWritten, calldata.result);
+    memcpy(sharedmemory, (uint8_t*)data + bytesWritten, bytesToWrite);
 
     pushToWaiting(currentthread);
     MachineFileWrite(filedescriptor, sharedmemory, bytesToWrite, requestFileOperationCallback, &calldata);
     replaceThread();
+
+    if(bytesToWrite != calldata.result)
+      fprintf(stderr, "bytesToWrite != calldata.result\n");
 
     bytesWritten += calldata.result;
   }
@@ -1144,6 +1150,9 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
     replaceThread();
 
     memcpy((uint8_t*)data + bytesRead, sharedmemory, calldata.result);
+
+    if(bytesToRead != calldata.result)
+      fprintf(stderr, "bytesToWrite != calldata.result\n");
 
     bytesRead += calldata.result;
   }
