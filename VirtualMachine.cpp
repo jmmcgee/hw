@@ -149,9 +149,9 @@ void MachineAlarmCallback(void *calldata);
 /** VM Globals **/
 
 
-ThreadManager *threadmanager = new ThreadManager;
-MutexManager *mutexmanager = new MutexManager;
-MemoryManager *memorymanager = MemoryManager::get();
+MemoryManager *memorymanager;
+ThreadManager *threadmanager;
+MutexManager *mutexmanager;
 char buf[1024];
 
 
@@ -163,7 +163,12 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
 {
   sharedmemory = MachineInitialize(machinetickms, ssize);;
   sharedsize = ssize;
+
+  memorymanager = MemoryManager::get();
   memorymanager->initializeMainPool(heapsize);
+  threadmanager = new ThreadManager;
+  mutexmanager = new MutexManager;
+
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
