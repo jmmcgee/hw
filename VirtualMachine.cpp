@@ -164,10 +164,6 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   sharedmemory = MachineInitialize(machinetickms, ssize);;
   sharedsize = ssize;
   memorymanager->initializeMainPool(heapsize);
-  fprintf(stderr, "heapsize: %d\n", heapsize);
-  fprintf(stderr, "sharedsize: %d\n", sharedsize);
-  fprintf(stderr, "sharedmem: %0x\n", sharedmemory);
-
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
@@ -677,7 +673,7 @@ ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMem
 ThreadControlBlock::~ThreadControlBlock()
 {
   delete call;
-  delete[] stackaddr;
+  memorymanager->getPool(VM_MEMORY_POOL_ID_SYSTEM)->deallocate(stackaddr);
 }
 
 TVMThreadID ThreadControlBlock::getId()
@@ -730,8 +726,13 @@ void ThreadControlBlock::activate()
   call->param = param;
   call->threadid = id;
 
-  if (stackaddr) delete[] stackaddr;
-  stackaddr = new char[stacksize];
+  // if (stackaddr) delete[] stackaddr;
+  // stackaddr = new char[stacksize];
+
+  MemoryPool* sysmempool = memorymanager->getPool(VM_MEMORY_POOL_ID_SYSTEM);
+
+  if (stackaddr) sysmempool->deallocate(stackaddr);
+  sysmempool->allocate(stacksize, (void**) &stackaddr);
 
   MachineContextCreate(&mcnxt, skeletonEntry, call, stackaddr, stacksize);
 }
@@ -1103,9 +1104,6 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
     MachineFileWrite(filedescriptor, sharedmemory, bytesToWrite, requestFileOperationCallback, &calldata);
     replaceThread();
 
-    if(bytesToWrite != calldata.result)
-      fprintf(stderr, "bytesToWrite != calldata.result\n");
-
     bytesWritten += calldata.result;
   }
 
@@ -1151,9 +1149,6 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
 
     memcpy((uint8_t*)data + bytesRead, sharedmemory, calldata.result);
 
-    if(bytesToRead != calldata.result)
-      fprintf(stderr, "bytesToWrite != calldata.result\n");
-
     bytesRead += calldata.result;
   }
 
@@ -1187,4 +1182,3 @@ MutexManager::MutexManager() :
 MutexManager::~MutexManager()
 {
 }
-
