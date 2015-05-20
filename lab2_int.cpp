@@ -161,6 +161,10 @@ void setColor(uint8_t color, uint32_t delay)
   for(int i=0; i < 100*ms; i++);
 }
 
+
+// this function separates our code into intervals
+// this way the stream of code is easier to separate and decode 
+// from the incoming signal
 interval_t interperetInterval(uint32_t interval)
 {
   interval_t val = LONG;
@@ -176,6 +180,7 @@ interval_t interperetInterval(uint32_t interval)
   return val;
 }
 
+// gives us the next bit to use
 interval_t nextBit()
 {
   if(pos == lastInterval)
@@ -187,6 +192,10 @@ interval_t nextBit()
   return bit;
 }
 
+
+// this function is readybyte, and it check to see if there is code 
+// sorts it accordingly to the intervals provided in the other section
+// in main, this function is used to determine if there is a signal to be read
 int readyByte()
 {
   interval_t bit = LONG;
@@ -211,6 +220,8 @@ int readyByte()
   return 1;
 }
 
+
+// gives us the next byte to work with
 uint8_t nextByte()
 {
   if(bytesReady > 0) {
@@ -223,6 +234,18 @@ uint8_t nextByte()
     return -1;
 }
 
+// this is the statement that actually checks to see if 
+//the hex code matches our human-understood numbers
+// originally, this code was supposed to match HEX --> DEC by our own definition
+// however, there were issues because the code was not always consistent. 
+
+// so, here we flip the bits and divide it into two chunks to compare
+// byte1 and byte2
+// if we receive byte 1, we check to see if byte 2 follows. 
+// if not, continue checking, if yes, set value
+
+// this is done for every button we decode (0123456789)
+// see section "WHAT OUR CODE DOES" for details!
 char readInput()
 {
   char val = 0;
@@ -349,6 +372,8 @@ SWITCH:
       }
   } // switch code
 
+	// go back and check again, 
+	// goto SWITCH statement when done checking first round
   if(val == 0 && count) {
     byte1 = byte2;
     byte2 = nextByte();
@@ -356,5 +381,6 @@ SWITCH:
     goto SWITCH;
   }
 
+	// return val!
   return val;
 }

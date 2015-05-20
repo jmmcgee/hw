@@ -87,6 +87,10 @@ void game()
   }
 }
 
+// this is the game we used in our final check off section
+// this game simply has a continuous loop (in main)
+// the user has control of the buttons 012345679 (8 was broken for us!)
+// using these buttons, the user can take control and move the pixel on screen (which starts off at 64, 64)
 void game2()
 {
   static int16_t xpos = 64, ypos = 64;

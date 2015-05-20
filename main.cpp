@@ -28,6 +28,7 @@ uint8_t ir;
 
 int main(void)
 {
+	// initialization statements
   initExtInt();
   initOled();
   initTimer();
@@ -48,11 +49,18 @@ int main(void)
     setColor(G_OFF);
 
     char key = 0;
-    int block = 2;
-
+    int block = 2; // "block" of hex code
+    
+    // continuation: here we read in the bytes in hex format
+    // this is how we check the pattern of the infared signal (we don't use the logic analyzer here)
+    
     // diagnose with hex
+    // we read in the signal bytesReady
     if(block == 0 && bytesReady > 3)
     {
+    	// reading in a block/byte
+    	// set LED color to red, reading in (do not touch!)
+    	// we used the LED to help us with some basic debugging
       setColor(R);
 
       c += sprintf(buf+c, "br: %d\n", bytesReady);
@@ -69,13 +77,17 @@ int main(void)
 
       //if(oled.getCursorY() > 128)
       oled.fillScreen(BLACK); //@ fills the OLED screen with black pixels
-      oled.setCursor(0, 0);
-      oled.writeString(buf,c);
-      for(int i = 0; i < 100; i++);
-      setColor(R_OFF);
+      oled.setCursor(0, 0); // sets cursor to beg
+      oled.writeString(buf,c); // writes string
+      for(int i = 0; i < 100; i++); // serves as a delay statement
+      setColor(R_OFF); // turn RED off
     }
 
-    // print hex
+    // print hex 
+    // note: there is room for error here, since the infared detector and signal is not always accurate
+    // the following two if statements check the "block" of hex code
+    // there is a nested statement inside to switch and double check the other blocks
+    // to make sure that the hex code read in matches the pattern accurately.
     else if(block == 1)
     {
       for(int i =0; i < 4; i++) {
@@ -99,6 +111,7 @@ int main(void)
       oled.write(key);
     }
 
+	// when done, set color back to green (ready to go)
     setColor(G);
     //delay(500);
   }
