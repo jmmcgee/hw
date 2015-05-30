@@ -8,6 +8,7 @@ int main(int argc, char *argv[]){
     TVMMemorySize HeapSize = 0x1000000;
     TVMMemorySize SharedSize = 0x4000;
     int Offset = 1;
+    char *FATMount = "fat.ima";
     
     while(Offset < argc){
         if(0 == strcmp(argv[Offset], "-t")){
@@ -71,6 +72,14 @@ int main(int argc, char *argv[]){
                 return 1;
             }
         }
+        else if(0 == strcmp(argv[Offset], "-f")){
+            // FAT Mount
+            Offset++;
+            if(Offset >= argc){
+                break;   
+            }
+            FATMount = argv[Offset];
+        }
         else{
             break;
         }
@@ -83,7 +92,7 @@ int main(int argc, char *argv[]){
     }
     
     
-    if(VM_STATUS_SUCCESS != VMStart(TickTimeMS, HeapSize, MachineTickTime, SharedSize, argc - Offset, argv + Offset)){
+    if(VM_STATUS_SUCCESS != VMStart(TickTimeMS, HeapSize, MachineTickTime, SharedSize, FATMount, argc - Offset, argv + Offset)){
         fprintf(stderr,"Virtual Machine failed to start.\n");    
         return 1;
     }

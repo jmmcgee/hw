@@ -73,7 +73,8 @@ static SMachineContextRef MachineContextCreateRef;
 static void (*MachineContextCreateFunction)(void *);
 static void *MachineContextCreateParam;
 static sigset_t MachineContextCreateSignals;
-static volatile sig_atomic_t MachinePendingRequest = false;
+//static volatile sig_atomic_t MachinePendingRequest = false;
+static int MachineSignalPipe[2];
 static TMachineAlarmCallback MachineAlarmCallback = NULL;
 static void *MachineAlarmCalldata = NULL;
 struct sigaction MachineAlarmActionSave;
@@ -213,7 +214,8 @@ bool MachineValidSharePointer(uint8_t *ptr){
 }
 
 void MachineRequestSignalHandler(int signum){
-    MachinePendingRequest = true;
+    uint8_t TempByte = 0;
+    write(MachineSignalPipe[1],&TempByte, 1);
 }
 
 void MachineReplySignalHandler(int signum){
@@ -314,88 +316,91 @@ void *MachineInitialize(int timeout, size_t sharesize){
         uint8_t *BufferPointer;
         
         MachineData.DChildPID = getpid();
-        
+        pipe(MachineSignalPipe);
+        PollFDs.resize(1);
+        PollFDs[0].fd = MachineSignalPipe[0];
+        PollFDs[0].events = POLLIN;
+        PollFDs[0].revents = 0;
         memset((void *)&SigAction, 0, sizeof(struct sigaction));
         SigAction.sa_handler = MachineRequestSignalHandler;
         sigemptyset(&SigAction.sa_mask);
         sigaction(SIGUSR2, &SigAction, &OldSigAction);
+        MachineEnableSignals();
         while(!Terminated){
             sigemptyset(&SigMask);
+            PollFDs[0].events = POLLIN;
+            PollFDs[0].revents = 0;
             Result = poll(PollFDs.data(), PollFDs.size(), timeout);
-            MachineResumeSignals(&SigStateSave);
-            MachineSuspendSignals(&SigStateSave);
-            if(MachinePendingRequest){
+            if((0 < Result)&&(PollFDs[0].revents)){
                 SMachinePendingRead PendingRead;
                 bool Found;
-                
-                do{
-                    MessageSize = msgrcv(MachineData.DRequestChannel, MessageRef, sizeof(Buffer), 0, IPC_NOWAIT);
-                    if(0 < MessageSize){
-                        switch(MessageRef->DType){
-                            case MACHINE_REQUEST_NONE:          break;
-                            case MACHINE_REQUEST_OPEN:          Flags = MachineGetInt(MessageRef->DPayload + strlen((char *)MessageRef->DPayload) + 1);
-                                                                Mode = MachineGetInt(MessageRef->DPayload + strlen((char *)MessageRef->DPayload) + sizeof(int) + 1);
-                                                                FileDescriptor = open((char *)MessageRef->DPayload, Flags, Mode);
-                                                                MachineSetInt(MessageRef->DPayload, FileDescriptor);
-                                                                MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
-                                                                break;
-                            case MACHINE_REQUEST_READ:          PendingRead.DRequestID = MessageRef->DRequestID;
-                                                                PendingRead.DFileDescriptor = MachineGetInt(MessageRef->DPayload);
-                                                                PendingRead.DLength = MachineGetInt(MessageRef->DPayload + sizeof(int));
-                                                                PendingRead.DBuffer = MachineGetPointer(MessageRef->DPayload + sizeof(int) * 2);
-                                                                if(MachineValidSharePointer(PendingRead.DBuffer) && (PendingRead.DLength <= MACHINE_MAX_TRANSFER_SIZE)){
-                                                                    Found = false;
-                                                                    for(size_t Index = 0; Index < PollFDs.size(); Index++){
-                                                                        if(PollFDs[Index].fd == PendingRead.DFileDescriptor){
-                                                                            Found = true;
-                                                                            break;
-                                                                        }
+                uint8_t TempByte;
+
+                read(PollFDs[0].fd, &TempByte, 1);
+                MessageSize = msgrcv(MachineData.DRequestChannel, MessageRef, sizeof(Buffer), 0, IPC_NOWAIT);
+                if(0 < MessageSize){
+                    switch(MessageRef->DType){
+                        case MACHINE_REQUEST_NONE:          break;
+                        case MACHINE_REQUEST_OPEN:          Flags = MachineGetInt(MessageRef->DPayload + strlen((char *)MessageRef->DPayload) + 1);
+                                                            Mode = MachineGetInt(MessageRef->DPayload + strlen((char *)MessageRef->DPayload) + sizeof(int) + 1);
+                                                            FileDescriptor = open((char *)MessageRef->DPayload, Flags, Mode);
+                                                            MachineSetInt(MessageRef->DPayload, FileDescriptor);
+                                                            MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
+                                                            break;
+                        case MACHINE_REQUEST_READ:          PendingRead.DRequestID = MessageRef->DRequestID;
+                                                            PendingRead.DFileDescriptor = MachineGetInt(MessageRef->DPayload);
+                                                            PendingRead.DLength = MachineGetInt(MessageRef->DPayload + sizeof(int));
+                                                            PendingRead.DBuffer = MachineGetPointer(MessageRef->DPayload + sizeof(int) * 2);
+                                                            if(MachineValidSharePointer(PendingRead.DBuffer) && (PendingRead.DLength <= MACHINE_MAX_TRANSFER_SIZE)){
+                                                                Found = false;
+                                                                for(size_t Index = 0; Index < PollFDs.size(); Index++){
+                                                                    if(PollFDs[Index].fd == PendingRead.DFileDescriptor){
+                                                                        Found = true;
+                                                                        break;
                                                                     }
-                                                                    if(!Found){
-                                                                        struct pollfd NewReadFD;
-                                                                        
-                                                                        NewReadFD.fd = PendingRead.DFileDescriptor;
-                                                                        NewReadFD.events = POLLIN;
-                                                                        NewReadFD.revents = 0;
-                                                                        PollFDs.push_back(NewReadFD);
-                                                                    }
-                                                                    PendingReads.push_back(PendingRead);
                                                                 }
-                                                                else{
-                                                                    MachineSetInt(MessageRef->DPayload, -1);
-                                                                    MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1); 
+                                                                if(!Found){
+                                                                    struct pollfd NewReadFD;
+                                                                    
+                                                                    NewReadFD.fd = PendingRead.DFileDescriptor;
+                                                                    NewReadFD.events = POLLIN;
+                                                                    NewReadFD.revents = 0;
+                                                                    PollFDs.push_back(NewReadFD);
                                                                 }
-                                                                break;
-                            case MACHINE_REQUEST_WRITE:         FileDescriptor = MachineGetInt(MessageRef->DPayload);
-                                                                Length = MachineGetInt(MessageRef->DPayload + sizeof(int));
-                                                                BufferPointer = MachineGetPointer(MessageRef->DPayload + sizeof(int) * 2);
-                                                                if(MachineValidSharePointer(BufferPointer) && (Length <= MACHINE_MAX_TRANSFER_SIZE)){
-                                                                    Result = write(FileDescriptor, BufferPointer, Length);
-                                                                    MachineSetInt(MessageRef->DPayload, Result);
-                                                                }
-                                                                else{
-                                                                    MachineSetInt(MessageRef->DPayload, -1);
-                                                                }
-                                                                MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
-                                                                break;
-                            case MACHINE_REQUEST_SEEK:          FileDescriptor = MachineGetInt(MessageRef->DPayload);
-                                                                Offset = MachineGetInt(MessageRef->DPayload + sizeof(int));
-                                                                Whence = MachineGetInt(MessageRef->DPayload + sizeof(int) * 2);
-                                                                Offset = lseek(FileDescriptor, Offset, Whence);
-                                                                MachineSetInt(MessageRef->DPayload, Offset);
-                                                                MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
-                                                                break;
-                            case MACHINE_REQUEST_CLOSE:         FileDescriptor = close(MachineGetInt(MessageRef->DPayload));
-                                                                MachineSetInt(MessageRef->DPayload, FileDescriptor);
-                                                                MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
-                                                                break;
-                            case MACHINE_REQUEST_TERMINATE:     Terminated = true;
-                            default:                            break;
-                        }
+                                                                PendingReads.push_back(PendingRead);
+                                                            }
+                                                            else{
+                                                                MachineSetInt(MessageRef->DPayload, -1);
+                                                                MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1); 
+                                                            }
+                                                            break;
+                        case MACHINE_REQUEST_WRITE:         FileDescriptor = MachineGetInt(MessageRef->DPayload);
+                                                            Length = MachineGetInt(MessageRef->DPayload + sizeof(int));
+                                                            BufferPointer = MachineGetPointer(MessageRef->DPayload + sizeof(int) * 2);
+                                                            if(MachineValidSharePointer(BufferPointer) && (Length <= MACHINE_MAX_TRANSFER_SIZE)){
+                                                                Result = write(FileDescriptor, BufferPointer, Length);
+                                                                MachineSetInt(MessageRef->DPayload, Result);
+                                                            }
+                                                            else{
+                                                                MachineSetInt(MessageRef->DPayload, -1);
+                                                            }
+                                                            MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
+                                                            break;
+                        case MACHINE_REQUEST_SEEK:          FileDescriptor = MachineGetInt(MessageRef->DPayload);
+                                                            Offset = MachineGetInt(MessageRef->DPayload + sizeof(int));
+                                                            Whence = MachineGetInt(MessageRef->DPayload + sizeof(int) * 2);
+                                                            Offset = lseek(FileDescriptor, Offset, Whence);
+                                                            MachineSetInt(MessageRef->DPayload, Offset);
+                                                            MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
+                                                            break;
+                        case MACHINE_REQUEST_CLOSE:         FileDescriptor = close(MachineGetInt(MessageRef->DPayload));
+                                                            MachineSetInt(MessageRef->DPayload, FileDescriptor);
+                                                            MachineSendReply(MessageRef,sizeof(SMachineRequest) + sizeof(int) - 1);
+                                                            break;
+                        case MACHINE_REQUEST_TERMINATE:     Terminated = true;
+                        default:                            break;
                     }
-                }while(0 < MessageSize);
-                
-                MachinePendingRequest = false;
+                }
             }
             else if(0 == Result){
                 if(0 > kill(MachineData.DParentPID, 0)){
@@ -404,7 +409,7 @@ void *MachineInitialize(int timeout, size_t sharesize){
                     }
                 }
             }
-            for(size_t Index = 0; Index < PollFDs.size(); Index++){
+            for(size_t Index = 1; Index < PollFDs.size(); Index++){
                 if(PollFDs[Index].revents){
                     for(size_t ReadIndex = 0; ReadIndex < PendingReads.size(); ReadIndex++){
                         if(PendingReads[ReadIndex].DFileDescriptor == PollFDs[Index].fd){
@@ -418,7 +423,7 @@ void *MachineInitialize(int timeout, size_t sharesize){
                     }
                 }
             }
-            for(size_t Index = 0; Index < PollFDs.size();){
+            for(size_t Index = 1; Index < PollFDs.size();){
                 bool Found = false;
                 for(size_t ReadIndex = 0; ReadIndex < PendingReads.size(); ReadIndex++){
                     if(PendingReads[ReadIndex].DFileDescriptor == PollFDs[Index].fd){

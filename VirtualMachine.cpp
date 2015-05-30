@@ -159,7 +159,7 @@ char buf[1024];
 
 extern TVMMainEntry VMLoadModule(const char *module);
 TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
-    TVMMemorySize ssize, int argc, char *argv[])
+    TVMMemorySize ssize, const char *mount, int argc, char *argv[])
 {
   sharedmemory = MachineInitialize(machinetickms, ssize);;
   sharedsize = ssize;
