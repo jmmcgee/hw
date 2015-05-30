@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <fcntl.h>
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
@@ -1160,9 +1161,8 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
   if(bytesRead != *length)
     std::cout << "WTF!!!! bytesRead != length\n" << std::flush;
 
-  if (calldata.result >= 0) *length = bytesRead;
-
-  return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  *length = bytesRead;
+  return (if bytesRead >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
 
 TVMStatus ThreadManager::requestFileClose(int filedescriptor)

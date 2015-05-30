@@ -15,6 +15,7 @@ APPDIR=./apps
 OBJS=$(OBJDIR)/Machine.o \
      $(OBJDIR)/VirtualMachineUtils.o \
      $(OBJDIR)/VirtualMachineMemory.o \
+     $(OBJDIR)/VirtualMachineFileSystem.o \
      $(OBJDIR)/VirtualMachine.o \
      $(OBJDIR)/main.o
      
