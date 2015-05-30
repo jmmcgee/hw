@@ -20,7 +20,7 @@ OBJS=$(OBJDIR)/Machine.o \
      $(OBJDIR)/main.o
      
      
-#DEBUG_MODE=TRUE
+DEBUG_MODE=TRUE
 UNAME := $(shell uname)
 
 ifdef DEBUG_MODE
@@ -31,10 +31,12 @@ INCLUDES += -I.
 LIBRARIES = -ldl
 
 CFLAGS += -Wall $(INCLUDES) $(DEFINES)
+CPPFLAGS+= -std=c++11
 APPCFLAGS += -Wall -fPIC $(INCLUDES) $(DEFINES)
 
 ifdef DEBUG_MODE
 CFLAGS += -g -ggdb
+CPPFLAGS += -g -ggdb
 APPCFLAGS += -g -ggdb
 else
 CFLAGS += -O3

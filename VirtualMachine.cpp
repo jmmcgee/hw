@@ -75,6 +75,10 @@ class ThreadControlBlock {
 };
 
 class ThreadManager {
+  private:
+    static ThreadManager* threadmanager;
+
+    ThreadManager();
   public:
     ThreadControlBlock *currentthread;
     unsigned int threadcounter;
@@ -87,7 +91,7 @@ class ThreadManager {
     std::deque<ThreadControlBlock*> threadqueue_waiting;
     std::deque<ThreadControlBlock*> threadqueue_dead;
 
-    ThreadManager();
+    static ThreadManager* get();
     ~ThreadManager();
 
     TVMThreadID getNewId();
@@ -135,11 +139,16 @@ class SignalGuard
 
 class MutexManager
 {
+  private:
+    static MutexManager* mutexmanager;
+
+    MutexManager();
+
   public:
     TVMMutexID lastID;
     std::map<TVMMutexID, std::deque<TVMThreadID>* > mutexqueues;
 
-    MutexManager();
+    static MutexManager* get(); 
     ~MutexManager();
 };
 
@@ -167,8 +176,8 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
 
   memorymanager = MemoryManager::get();
   memorymanager->initializeMainPool(heapsize);
-  threadmanager = new ThreadManager;
-  mutexmanager = new MutexManager;
+  threadmanager = ThreadManager::get();
+  mutexmanager = MutexManager::get();
 
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
@@ -819,6 +828,15 @@ void SignalGuard::unlock()
   released = true;
 }
 
+ThreadManager* ThreadManager::threadmanager = nullptr;
+
+ThreadManager* ThreadManager::get()
+{
+  if(threadmanager == nullptr)
+    threadmanager = new ThreadManager();
+  return threadmanager;
+}
+
 ThreadManager::ThreadManager():
   threadcounter(1)
 {
@@ -1161,8 +1179,9 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
   if(bytesRead != *length)
     std::cout << "WTF!!!! bytesRead != length\n" << std::flush;
 
-  *length = bytesRead;
-  return (if bytesRead >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
+  if (calldata.result >= 0) *length = bytesRead;
+
+  return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
 
 TVMStatus ThreadManager::requestFileClose(int filedescriptor)
@@ -1179,6 +1198,14 @@ TVMStatus ThreadManager::requestFileClose(int filedescriptor)
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
 
+MutexManager* MutexManager::mutexmanager = nullptr;
+
+MutexManager* MutexManager::get()
+{
+  if(mutexmanager == nullptr)
+    mutexmanager = new MutexManager();
+  return mutexmanager;
+}
 MutexManager::MutexManager() :
   lastID(0)
 {
