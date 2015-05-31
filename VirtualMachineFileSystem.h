@@ -15,6 +15,7 @@ class FatFileSystem
     ~FatFileSystem();
 
     void readBPB();
-
+    bool seekSector(int base, int offset);
+    bool seekCluster(int base, int offset);
 };
 #endif

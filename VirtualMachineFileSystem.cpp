@@ -67,3 +67,37 @@ void FatFileSystem::readBPB()
 
     std::cerr << "BPB_BytsPerSec = " << BPB_BytsPerSec << ", BPB_SecPerClus = " << (int) BPB_SecPerClus << "\n" << std::flush;
 }
+
+bool FatFileSystem::seekSector(int base, int offset)
+{
+  ThreadManager* tm = ThreadManager::get();
+  TVMStatus status;
+
+  int newoffset;
+
+  offset *= BPB_BytsPerSec;
+  base *= BPB_BytsPerSec;
+  status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
+
+  if (newoffset == offset + base)
+    return true;
+  else
+    return false;
+}
+
+bool FatFileSystem::seekCluster(int base, int offset)
+{
+  ThreadManager* tm = ThreadManager::get();
+  TVMStatus status;
+
+  int newoffset;
+
+  offset *= BPB_BytsPerSec * BPB_SecPerClus;
+  base *= BPB_BytsPerSec * BPB_SecPerClus;
+  status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
+
+  if (newoffset == offset + base)
+    return true;
+  else
+    return false;
+}
