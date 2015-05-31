@@ -8,7 +8,9 @@ FatFileSystem::FatFileSystem(const char* mount)
   : mountFD(0)
 {
   TVMStatus status;
-  status = VMFileOpen(mount, O_TRUNC | O_RDWR, 0644, &mountFD);
+  status = VMFileOpen(mount, O_RDWR, 0644, &mountFD);
+  
+  
 }
 
 FatFileSystem::~FatFileSystem()
