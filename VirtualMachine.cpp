@@ -21,6 +21,7 @@
 
 ThreadManager *threadmanager;
 char buf[1024];
+bool STDERR_DEBUG = true;
 
 
 /** VM Thread API **/
@@ -35,13 +36,16 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   MemoryManager::get()->initializeSharedPool(sharedmemory, sharedsize);
   threadmanager = ThreadManager::get();
 
+  status("BEFORE fs");
   FatFileSystem fs(mount);
+  status("AFTER fs");
 
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
   TVMMainEntry vmmain = VMLoadModule(argv[0]);
   if (!vmmain) return VM_STATUS_FAILURE;
+  status("BEFORE VMLoadModule");
 
 
   threadmanager->isRunning = true;
@@ -49,6 +53,7 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   MachineEnableSignals();
   MachineTerminate();
   threadmanager->isRunning = false;
+  status("TERMINATED?");
   cerr << "TERMINATED? " << endl;
 
   return VM_STATUS_SUCCESS;
@@ -425,7 +430,6 @@ TVMStatus VMMemoryPoolDeallocate(TVMMemoryPoolID memory, void *pointer)
 
 /** VM Thread Scheduler **/
 
-bool STDERR_DEBUG = false;
 
 void printQueue(std::deque<ThreadControlBlock*>* q) {
   if (!STDERR_DEBUG) return;
@@ -790,8 +794,6 @@ TVMStatus ThreadManager::terminateThread(TVMThreadID id)
 
 void ThreadManager::replaceThread()
 {
-  if(! threadmanager->isRunning)
-    return;
 
   TMachineSignalState sigstate;
   MachineSuspendSignals(&sigstate);
@@ -1093,9 +1095,9 @@ MutexManager* MutexManager::mutexmanager = nullptr;
 
 MutexManager* MutexManager::get()
 {
-  if(MutexManager::get() == nullptr)
+  if(mutexmanager == nullptr)
     mutexmanager = new MutexManager();
-  return MutexManager::get();
+  return mutexmanager;
 }
 MutexManager::MutexManager() :
   lastID(0)
