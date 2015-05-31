@@ -31,10 +31,12 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
     TVMMemorySize sharedsize, const char *mount, int argc, char *argv[])
 {
   using namespace std;
+
   void* sharedmemory = MachineInitialize(machinetickms, sharedsize);;
   MemoryManager::get()->initializeMainPool(heapsize);
   MemoryManager::get()->initializeSharedPool(sharedmemory, sharedsize);
   threadmanager = ThreadManager::get();
+  threadmanager->isRunning = true;
 
   status("BEFORE fs");
   FatFileSystem fs(mount);
@@ -959,7 +961,12 @@ void ThreadManager::requestFileOperationCallback(void *calldata, int result)
   _calldata->result = result;
   _calldata->block = 0;
 
+  std::cerr << "requestFileOperationCallback _calldata->block = 0\n" << std::flush;
+
   if(ThreadManager::get()->isRunning) {
+
+    std::cerr << "requestFileOperationCallback ThreadManager::get()->isRunning\n" << std::flush;
+
     _calldata->self->popFromWaiting(_calldata->requestingthread);
     _calldata->self->pushToReady(_calldata->requestingthread);
     _calldata->self->replaceThread();
@@ -980,7 +987,7 @@ TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mo
     replaceThread();
   }
   else
-    while(calldata.block);
+    while(calldata.block == 1);
 
   *filedescriptor = calldata.result;
 
@@ -1009,7 +1016,7 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
       replaceThread();
     }
     else
-      while(calldata.block);
+      while(calldata.block == 1);
 
     bytesWritten += calldata.result;
   }
@@ -1060,7 +1067,7 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
       replaceThread();
     }
     else
-      while(calldata.block);
+      while(calldata.block == 1);
 
     memcpy((uint8_t*)data + bytesRead, memory, calldata.result);
 
