@@ -10,5 +10,7 @@ class FatFileSystem
     FatFileSystem(const char* mount);
     ~FatFileSystem();
 
+    void readBPB();
+
 };
 #endif
