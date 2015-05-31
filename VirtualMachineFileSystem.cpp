@@ -16,11 +16,14 @@ FatFileSystem::FatFileSystem(const char* mount)
 
   TVMStatus status;
   status = VMFileOpen(mount, O_RDWR, 0644, &mountFD);
+
+  cerr << "OPENED MOUNT: status=" << status << endl;
   
   uint8_t bpb[512] = {0};
   int len = 512;
   //status = VMFileRead(mountFD, bpb, &len);
   status = tm->requestFileRead(mountFD, bpb, &len);
+  cerr << "READ BPB: status=" << status << endl;
 
   cerr << "(" << status << ")" << "SUCCESSFULLY READ " << len << " bytes\n" << flush;
   for(int i =0; i < 512; i++)

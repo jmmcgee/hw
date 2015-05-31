@@ -36,23 +36,20 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   MemoryManager::get()->initializeSharedPool(sharedmemory, sharedsize);
   threadmanager = ThreadManager::get();
 
-  status("BEFORE fs");
-  FatFileSystem fs(mount);
-  status("AFTER fs");
 
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
 
   TVMMainEntry vmmain = VMLoadModule(argv[0]);
   if (!vmmain) return VM_STATUS_FAILURE;
-  status("BEFORE VMLoadModule");
 
+  status("BEFORE fs");
+  FatFileSystem fs(mount);
+  status("AFTER fs");
 
-  threadmanager->isRunning = true;
   vmmain(argc,argv);
   MachineEnableSignals();
   MachineTerminate();
-  threadmanager->isRunning = false;
   status("TERMINATED?");
   cerr << "TERMINATED? " << endl;
 
@@ -704,8 +701,7 @@ ThreadManager* ThreadManager::get()
 }
 
 ThreadManager::ThreadManager():
-  threadcounter(1),
-  isRunning(false)
+  threadcounter(1)
 {
   currentthread = new ThreadControlBlock(true);
 
@@ -959,11 +955,11 @@ void ThreadManager::requestFileOperationCallback(void *calldata, int result)
   _calldata->result = result;
   _calldata->block = 0;
 
-  if(ThreadManager::get()->isRunning) {
-    _calldata->self->popFromWaiting(_calldata->requestingthread);
-    _calldata->self->pushToReady(_calldata->requestingthread);
-    _calldata->self->replaceThread();
-  }
+  using namespace std;
+  _calldata->self->popFromWaiting(_calldata->requestingthread);
+  _calldata->self->pushToReady(_calldata->requestingthread);
+  _calldata->self->replaceThread();
+  //cerr << "_calldata->requestingthread->getState()=" << _calldata->requestingthread->getState() << endl;
 }
 
 TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
@@ -972,15 +968,11 @@ TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mo
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
+  using namespace std;
+  pushToWaiting(currentthread);
   MachineFileOpen(filename, flags, mode, requestFileOperationCallback, &calldata);
-
-  calldata.block = 1;
-  if(ThreadManager::get()->isRunning) {
-    pushToWaiting(currentthread);
-    replaceThread();
-  }
-  else
-    while(calldata.block);
+  replaceThread();
+  //cerr << "currentthread->getState()=" << currentthread->getState() << endl;
 
   *filedescriptor = calldata.result;
 
@@ -995,25 +987,19 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
 
   int bytesWritten = 0;
   void *memory;
-  VMMemoryPoolAllocate(VM_MEMORY_POOL_ID_SHARED, 512, &memory);
   while(bytesWritten < *length) {
     // could make decision more robust
+    VMMemoryPoolAllocate(VM_MEMORY_POOL_ID_SHARED, 512, &memory);
     int bytesToWrite = *length - bytesWritten < 512 ? *length - bytesWritten : 512;
 
     memcpy(memory, (uint8_t*)data + bytesWritten, bytesToWrite);
+    pushToWaiting(currentthread);
     MachineFileWrite(filedescriptor, memory, bytesToWrite, requestFileOperationCallback, &calldata);
-
-    calldata.block = 1;
-    if(ThreadManager::get()->isRunning) {
-      pushToWaiting(currentthread);
-      replaceThread();
-    }
-    else
-      while(calldata.block);
+    replaceThread();
 
     bytesWritten += calldata.result;
+    VMMemoryPoolDeallocate(VM_MEMORY_POOL_ID_SHARED, memory);
   }
-  VMMemoryPoolDeallocate(VM_MEMORY_POOL_ID_SHARED, memory);
 
   if (calldata.result >= 0) *length = bytesWritten;
 
@@ -1026,12 +1012,9 @@ TVMStatus ThreadManager::requestFileSeek(int filedescriptor, int offset, int whe
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
+  pushToWaiting(currentthread);
   MachineFileSeek(filedescriptor, offset, whence, requestFileOperationCallback, &calldata);
-
-  if(ThreadManager::get()->isRunning) {
-    pushToWaiting(currentthread);
-    replaceThread();
-  }
+  replaceThread();
 
   if (newoffset) *newoffset = calldata.result;
 
@@ -1052,19 +1035,17 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
   while(bytesRead < *length) {
     int bytesToRead = *length - bytesRead < 512 ? *length - bytesRead : 512;
 
+    cerr << "*length=" << *length << endl;
+    cerr << "bytesToRead=" << bytesToRead << endl;
+    pushToWaiting(currentthread);
     MachineFileRead(filedescriptor, memory, bytesToRead, requestFileOperationCallback, &calldata);
-
-    calldata.block = 1;
-    if(ThreadManager::get()->isRunning) {
-      pushToWaiting(currentthread);
-      replaceThread();
-    }
-    else
-      while(calldata.block);
+    replaceThread();
+    //cerr << "currentthread->getState()=" << currentthread->getState() << endl;
 
     memcpy((uint8_t*)data + bytesRead, memory, calldata.result);
 
     bytesRead += calldata.result;
+    cerr << "calldata.result=" << calldata.result << endl;
     if(calldata.result < bytesToRead)
       break;
   }
@@ -1081,12 +1062,9 @@ TVMStatus ThreadManager::requestFileClose(int filedescriptor)
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
+  pushToWaiting(currentthread);
   MachineFileClose(filedescriptor, requestFileOperationCallback, &calldata);
-
-  if(ThreadManager::get()->isRunning) {
-    pushToWaiting(currentthread);
-    replaceThread();
-  }
+  replaceThread();
 
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
