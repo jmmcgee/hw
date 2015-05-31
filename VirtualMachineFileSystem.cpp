@@ -20,16 +20,16 @@ FatFileSystem::FatFileSystem(const char* mount)
   uint8_t bpb[512] = {0};
   int len = 512;
   //status = VMFileRead(mountFD, bpb, &len);
-  tm->requestFileRead(mountFD, bpb, &len);
+  status = tm->requestFileRead(mountFD, bpb, &len);
 
-  cerr << "SUCCESSFULLY READ " << len << " bytes\n" << flush;
+  cerr << "(" << status << ")" << "SUCCESSFULLY READ " << len << " bytes\n" << flush;
   for(int i =0; i < 512; i++)
     cerr << char(bpb[512]);
   
   int tempFD;
-  tm->requestFileOpen("temp", O_RDWR, 0644, &tempFD);
-  tm->requestFileWrite(tempFD, bpb, &len);
-  tm->requestFileClose(tempFD);
+  //tm->requestFileOpen("temp", O_RDWR, 0644, &tempFD);
+  //tm->requestFileWrite(tempFD, bpb, &len);
+  //tm->requestFileClose(tempFD);
 }
 
 FatFileSystem::~FatFileSystem()

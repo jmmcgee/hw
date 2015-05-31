@@ -21,7 +21,7 @@
 
 ThreadManager *threadmanager;
 char buf[1024];
-bool STDERR_DEBUG = true;
+bool STDERR_DEBUG = false;
 
 
 /** VM Thread API **/

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+make all apps
+
+modules="./hello.so ./sleep.so ./thread.so ./file.so ./mutex.so ./memory.so ./shell.so"
+
+for module in ${modules}; do
+    printf '\n==> TESTING %s\n' ${module}
+    ./vm ${module}
+done
+
