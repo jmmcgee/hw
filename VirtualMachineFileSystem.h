@@ -10,6 +10,7 @@ class FatFileSystem
     uint16_t BPB_BytsPerSec;
     uint8_t BPB_SecPerClus;
 
+    uint16_t *FAT;
   public:
     FatFileSystem(const char* mount);
     ~FatFileSystem();
