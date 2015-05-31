@@ -14,8 +14,9 @@ MemoryManager* MemoryManager::get()
 }
 
 MemoryManager::MemoryManager():
-  mainheap(NULL),
-  poolcount(0)
+  mainheap(nullptr),
+  sharedmemory(nullptr),
+  poolcount(2)
 {
 }
 
@@ -34,6 +35,16 @@ void MemoryManager::initializeMainPool(TVMMemorySize size)
   pools.insert(pair_poolid_poolref(VM_MEMORY_POOL_ID_SYSTEM, mainpool));
 }
 
+void MemoryManager::initializeSharedPool(void* memory, TVMMemorySize size)
+{
+  if (sharedmemory) return;
+  sharedmemory = (void *) (memory);
+
+  MemoryPool* sharedpool = new MemoryPool(VM_MEMORY_POOL_ID_SYSTEM, memory, size);
+
+  pools.insert(pair_poolid_poolref(VM_MEMORY_POOL_ID_SHARED, sharedpool));
+}
+
 MemoryPool* MemoryManager::getPool(TVMMemoryPoolID id)
 {
   std::map<TVMMemoryPoolID, MemoryPool*>::iterator pools_it;
@@ -47,7 +58,7 @@ MemoryPool* MemoryManager::getPool(TVMMemoryPoolID id)
 
 TVMMemoryPoolID MemoryManager::createPool(void* base, TVMMemorySize size)
 {
-  TVMMemoryPoolID poolid = ++poolcount;
+  TVMMemoryPoolID poolid = poolcount++;
 
   MemoryPool* pool = new MemoryPool(poolid, base, size);
 

@@ -14,9 +14,6 @@
 
 
 extern "C" TVMMainEntry VMLoadModule(const char *module);
-void *sharedmemory;
-int sharedsize;
-
 
 void status(const char* msg = "");
 /** Forward Delcarations **/
@@ -169,13 +166,13 @@ char buf[1024];
 
 extern TVMMainEntry VMLoadModule(const char *module);
 TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
-    TVMMemorySize ssize, const char *mount, int argc, char *argv[])
+    TVMMemorySize sharedsize, const char *mount, int argc, char *argv[])
 {
-  sharedmemory = MachineInitialize(machinetickms, ssize);;
-  sharedsize = ssize;
+  void* sharedmemory = MachineInitialize(machinetickms, sharedsize);;
 
   memorymanager = MemoryManager::get();
   memorymanager->initializeMainPool(heapsize);
+  memorymanager->initializeSharedPool(sharedmemory, sharedsize);
   threadmanager = ThreadManager::get();
   mutexmanager = MutexManager::get();
 
@@ -1118,21 +1115,20 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
   calldata.requestingthread = currentthread;
 
   int bytesWritten = 0;
+  void *memory;
+  VMMemoryPoolAllocate(VM_MEMORY_POOL_ID_SHARED, 512, &memory);
   while(bytesWritten < *length) {
     // could make decision more robust
-    int bytesToWrite = ( *length - bytesWritten >= 512) ? 512 : ( *length - bytesWritten );
+    int bytesToWrite = *length - bytesWritten < 512 ? *length - bytesWritten : 512;
 
-    memcpy(sharedmemory, (uint8_t*)data + bytesWritten, bytesToWrite);
-
+    memcpy(memory, (uint8_t*)data + bytesWritten, bytesToWrite);
     pushToWaiting(currentthread);
-    MachineFileWrite(filedescriptor, sharedmemory, bytesToWrite, requestFileOperationCallback, &calldata);
+    MachineFileWrite(filedescriptor, memory, bytesToWrite, requestFileOperationCallback, &calldata);
     replaceThread();
 
     bytesWritten += calldata.result;
   }
-
-  if(bytesWritten != *length)
-    std::cout << "WTF!!!! bytesWriten != length\n" << std::flush;
+  VMMemoryPoolDeallocate(VM_MEMORY_POOL_ID_SHARED, memory);
 
   if (calldata.result >= 0) *length = bytesWritten;
 
@@ -1145,9 +1141,8 @@ TVMStatus ThreadManager::requestFileSeek(int filedescriptor, int offset, int whe
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
-  pushToWaiting(currentthread);
-
   MachineFileSeek(filedescriptor, offset, whence, requestFileOperationCallback, &calldata);
+  pushToWaiting(currentthread);
   replaceThread();
 
   if (newoffset) *newoffset = calldata.result;
@@ -1161,23 +1156,25 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
-  pushToWaiting(currentthread);
+  using namespace std;
 
   int bytesRead = 0;
+  void *memory;
+  VMMemoryPoolAllocate(VM_MEMORY_POOL_ID_SHARED, 512, &memory);
   while(bytesRead < *length) {
-    int bytesToRead = ( *length - bytesRead >= 512 ) ? 512 : ( *length - bytesRead );
+    int bytesToRead = *length - bytesRead < 512 ? *length - bytesRead : 512;
 
+    MachineFileRead(filedescriptor, memory, bytesToRead, requestFileOperationCallback, &calldata);
     pushToWaiting(currentthread);
-    MachineFileWrite(filedescriptor, sharedmemory, bytesToRead, requestFileOperationCallback, &calldata);
     replaceThread();
 
-    memcpy((uint8_t*)data + bytesRead, sharedmemory, calldata.result);
+    memcpy((uint8_t*)data + bytesRead, memory, calldata.result);
 
     bytesRead += calldata.result;
+    if(calldata.result < bytesToRead)
+      break;
   }
-
-  if(bytesRead != *length)
-    std::cout << "WTF!!!! bytesRead != length\n" << std::flush;
+  VMMemoryPoolDeallocate(VM_MEMORY_POOL_ID_SHARED, memory);
 
   if (calldata.result >= 0) *length = bytesRead;
 

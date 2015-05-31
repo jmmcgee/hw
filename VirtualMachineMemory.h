@@ -23,6 +23,7 @@ class MemoryManager
     static MemoryManager* ref;
 
     void* mainheap;
+    void* sharedmemory;
 
     std::map<TVMMemoryPoolID, MemoryPool*> pools;
     size_t poolcount;
@@ -34,6 +35,7 @@ class MemoryManager
     ~MemoryManager();
 
     void initializeMainPool(TVMMemorySize size);
+    void initializeSharedPool(void* sharedmemory, TVMMemorySize size);
 
     MemoryPool* getPool(TVMMemoryPoolID id);
     TVMMemoryPoolID createPool(void* base, TVMMemorySize size);
