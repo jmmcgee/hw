@@ -21,9 +21,6 @@ class ThreadManager;
 class MutexManager;
 
 extern "C" TVMMainEntry VMLoadModule(const char *module);
-extern MemoryManager *memorymanager;
-extern ThreadManager *threadmanager;
-extern MutexManager *mutexmanager;
 
 void status(const char* msg = "");
 /** Forward Delcarations **/
@@ -89,6 +86,7 @@ class ThreadManager {
   public:
     ThreadControlBlock *currentthread;
     unsigned int threadcounter;
+    bool isRunning;
 
     std::deque<ThreadControlBlock*> threadqueue_ready_low;
     std::deque<ThreadControlBlock*> threadqueue_ready_med;

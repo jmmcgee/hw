@@ -12,15 +12,14 @@
 #include "VirtualMachine.h"
 #include "VirtualMachineMemory.h"
 #include "VirtualMachineInternals.h"
+#include "VirtualMachineFileSystem.h"
 
 
 
 /** VM Globals **/
 
 
-MemoryManager *memorymanager;
 ThreadManager *threadmanager;
-MutexManager *mutexmanager;
 char buf[1024];
 
 
@@ -30,13 +29,13 @@ extern TVMMainEntry VMLoadModule(const char *module);
 TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
     TVMMemorySize sharedsize, const char *mount, int argc, char *argv[])
 {
+  using namespace std;
   void* sharedmemory = MachineInitialize(machinetickms, sharedsize);;
-
-  memorymanager = MemoryManager::get();
-  memorymanager->initializeMainPool(heapsize);
-  memorymanager->initializeSharedPool(sharedmemory, sharedsize);
+  MemoryManager::get()->initializeMainPool(heapsize);
+  MemoryManager::get()->initializeSharedPool(sharedmemory, sharedsize);
   threadmanager = ThreadManager::get();
-  mutexmanager = MutexManager::get();
+
+  FatFileSystem fs(mount);
 
   MachineEnableSignals();
   MachineRequestAlarm(tickms * 1000, MachineAlarmCallback, NULL);
@@ -44,9 +43,13 @@ TVMStatus VMStart(int tickms, TVMMemorySize heapsize, int machinetickms,
   TVMMainEntry vmmain = VMLoadModule(argv[0]);
   if (!vmmain) return VM_STATUS_FAILURE;
 
-  vmmain(argc,argv);
 
+  threadmanager->isRunning = true;
+  vmmain(argc,argv);
+  MachineEnableSignals();
   MachineTerminate();
+  threadmanager->isRunning = false;
+  cerr << "TERMINATED? " << endl;
 
   return VM_STATUS_SUCCESS;
 }
@@ -167,17 +170,17 @@ TVMStatus VMMutexCreate(TVMMutexIDRef mutexref)
   SignalGuard signalGuard(threadmanager->currentthread);
   signalGuard.lock();
 
-  TVMMutexID mutex = mutexmanager->lastID+1;
+  TVMMutexID mutex = MutexManager::get()->lastID+1;
 
-  while(mutexmanager->mutexqueues.find(mutex) != mutexmanager->mutexqueues.end()) {
+  while(MutexManager::get()->mutexqueues.find(mutex) != MutexManager::get()->mutexqueues.end()) {
     mutex++;
-    if(mutex == mutexmanager->lastID)
+    if(mutex == MutexManager::get()->lastID)
       return VM_STATUS_ERROR_INSUFFICIENT_RESOURCES;
   }
 
   *mutexref = mutex;
 
-  mutexmanager->mutexqueues[mutex] = new std::deque<TVMThreadID>;
+  MutexManager::get()->mutexqueues[mutex] = new std::deque<TVMThreadID>;
 
   return VM_STATUS_SUCCESS;
 }
@@ -187,10 +190,10 @@ TVMStatus VMMutexDelete(TVMMutexID mutex)
   SignalGuard signalGuard(threadmanager->currentthread);
   signalGuard.lock();
 
-  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
+  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  MutexManager::get()->mutexqueues.find(mutex);
   std::deque<TVMThreadID>* q;
 
-  if(mutexqueues_it == mutexmanager->mutexqueues.end())
+  if(mutexqueues_it == MutexManager::get()->mutexqueues.end())
     return VM_STATUS_ERROR_INVALID_ID;
   q = mutexqueues_it->second;
 
@@ -200,7 +203,7 @@ TVMStatus VMMutexDelete(TVMMutexID mutex)
     return VM_STATUS_ERROR_INVALID_STATE;
 
   delete q;
-  mutexmanager->mutexqueues.erase(mutexqueues_it);
+  MutexManager::get()->mutexqueues.erase(mutexqueues_it);
 
   return VM_STATUS_SUCCESS;
 }
@@ -210,10 +213,10 @@ TVMStatus VMMutexQuery(TVMMutexID mutex, TVMThreadIDRef ownerref)
   SignalGuard signalGuard(threadmanager->currentthread);
   signalGuard.lock();
 
-  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
+  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  MutexManager::get()->mutexqueues.find(mutex);
   std::deque<TVMThreadID>* q;
 
-  if(mutexqueues_it == mutexmanager->mutexqueues.end())
+  if(mutexqueues_it == MutexManager::get()->mutexqueues.end())
     return VM_STATUS_ERROR_INVALID_ID;
   q = mutexqueues_it->second;
 
@@ -235,13 +238,13 @@ TVMStatus VMMutexAcquire(TVMMutexID mutex, TVMTick timeout)
   SignalGuard signalGuard(threadmanager->currentthread);
   signalGuard.lock();
 
-  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
+  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  MutexManager::get()->mutexqueues.find(mutex);
   std::deque<TVMThreadID>* q;
 
   sprintf(buf, "Acquiring mutex... [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
   status(buf);
 
-  if(mutexqueues_it == mutexmanager->mutexqueues.end())
+  if(mutexqueues_it == MutexManager::get()->mutexqueues.end())
     return VM_STATUS_ERROR_INVALID_ID;
   q = mutexqueues_it->second;
 
@@ -284,12 +287,12 @@ TVMStatus VMMutexRelease(TVMMutexID mutex)
   SignalGuard signalGuard(threadmanager->currentthread);
   signalGuard.lock();
 
-  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  mutexmanager->mutexqueues.find(mutex);
+  std::map<TVMMutexID, std::deque<TVMThreadID>* >::iterator mutexqueues_it =  MutexManager::get()->mutexqueues.find(mutex);
   std::deque<TVMThreadID>* q;
 
   sprintf(buf, "Released mutex [thread=%d, mutex=%d]", threadmanager->currentthread->id, mutex);
   status(buf);
-  if(mutexqueues_it == mutexmanager->mutexqueues.end())
+  if(mutexqueues_it == MutexManager::get()->mutexqueues.end())
     return VM_STATUS_ERROR_INVALID_ID;
   q = mutexqueues_it->second;
 
@@ -374,21 +377,21 @@ TVMStatus VMMemoryPoolCreate(void *base, TVMMemorySize size, TVMMemoryPoolIDRef 
 {
   if (!base || !size || !memory) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-  *memory = memorymanager->createPool(base, size);
+  *memory = MemoryManager::get()->createPool(base, size);
 
   return VM_STATUS_SUCCESS;
 }
 
 TVMStatus VMMemoryPoolDelete(TVMMemoryPoolID memory)
 {
-  return memorymanager->deletePool(memory);
+  return MemoryManager::get()->deletePool(memory);
 }
 
 TVMStatus VMMemoryPoolQuery(TVMMemoryPoolID memory, TVMMemorySizeRef bytesleft)
 {
   if (!bytesleft) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-  MemoryPool* pool = memorymanager->getPool(memory);
+  MemoryPool* pool = MemoryManager::get()->getPool(memory);
 
   if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
@@ -401,7 +404,7 @@ TVMStatus VMMemoryPoolAllocate(TVMMemoryPoolID memory, TVMMemorySize size, void 
 {
   if (!size || !pointer) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-  MemoryPool* pool = memorymanager->getPool(memory);
+  MemoryPool* pool = MemoryManager::get()->getPool(memory);
 
   if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
@@ -412,7 +415,7 @@ TVMStatus VMMemoryPoolDeallocate(TVMMemoryPoolID memory, void *pointer)
 {
   if (!pointer) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
-  MemoryPool* pool = memorymanager->getPool(memory);
+  MemoryPool* pool = MemoryManager::get()->getPool(memory);
 
   if (!pool) return VM_STATUS_ERROR_INVALID_PARAMETER;
 
@@ -486,8 +489,8 @@ void status(const char* msg)
   }
 
   cerr << "Mutex...\n";
-  for(mutexqueues_it = mutexmanager->mutexqueues.begin();
-      mutexqueues_it != mutexmanager->mutexqueues.end();
+  for(mutexqueues_it = MutexManager::get()->mutexqueues.begin();
+      mutexqueues_it != MutexManager::get()->mutexqueues.end();
       mutexqueues_it++)
   {
     cerr << mutexqueues_it->first << ":";
@@ -547,7 +550,7 @@ ThreadControlBlock::ThreadControlBlock(TVMThreadEntry entry, void* param, TVMMem
 ThreadControlBlock::~ThreadControlBlock()
 {
   delete call;
-  memorymanager->getPool(VM_MEMORY_POOL_ID_SYSTEM)->deallocate(stackaddr);
+  MemoryManager::get()->getPool(VM_MEMORY_POOL_ID_SYSTEM)->deallocate(stackaddr);
 }
 
 TVMThreadID ThreadControlBlock::getId()
@@ -603,7 +606,7 @@ void ThreadControlBlock::activate()
   // if (stackaddr) delete[] stackaddr;
   // stackaddr = new char[stacksize];
 
-  MemoryPool* sysmempool = memorymanager->getPool(VM_MEMORY_POOL_ID_SYSTEM);
+  MemoryPool* sysmempool = MemoryManager::get()->getPool(VM_MEMORY_POOL_ID_SYSTEM);
 
   if (stackaddr) sysmempool->deallocate(stackaddr);
   sysmempool->allocate(stacksize, (void**) &stackaddr);
@@ -697,7 +700,8 @@ ThreadManager* ThreadManager::get()
 }
 
 ThreadManager::ThreadManager():
-  threadcounter(1)
+  threadcounter(1),
+  isRunning(false)
 {
   currentthread = new ThreadControlBlock(true);
 
@@ -786,8 +790,11 @@ TVMStatus ThreadManager::terminateThread(TVMThreadID id)
 
 void ThreadManager::replaceThread()
 {
-  SignalGuard signalGuard(threadmanager->currentthread);
-  signalGuard.lock();
+  if(! threadmanager->isRunning)
+    return;
+
+  TMachineSignalState sigstate;
+  MachineSuspendSignals(&sigstate);
 
   ThreadControlBlock *newthread = 0, *oldthread;
   TVMThreadPriority currentprio = currentthread->getPrio();
@@ -827,7 +834,6 @@ void ThreadManager::replaceThread()
 
   currentthread->restoreSignals();
   MachineContextSwitch(oldthread->getMcnxtRef(), currentthread->getMcnxtRef());
-  signalGuard.unlock();
 }
 
 void ThreadManager::popFromAll(ThreadControlBlock* thread)
@@ -941,6 +947,7 @@ typedef struct {
   ThreadManager *self;
   ThreadControlBlock* requestingthread;
   int result;
+  volatile int block;
 } requestFileOperationStruct, *requestFileOperationStructRef;
 
 void ThreadManager::requestFileOperationCallback(void *calldata, int result)
@@ -948,10 +955,13 @@ void ThreadManager::requestFileOperationCallback(void *calldata, int result)
   requestFileOperationStructRef _calldata = (requestFileOperationStructRef) calldata;
 
   _calldata->result = result;
+  _calldata->block = 0;
 
-  _calldata->self->popFromWaiting(_calldata->requestingthread);
-  _calldata->self->pushToReady(_calldata->requestingthread);
-  _calldata->self->replaceThread();
+  if(ThreadManager::get()->isRunning) {
+    _calldata->self->popFromWaiting(_calldata->requestingthread);
+    _calldata->self->pushToReady(_calldata->requestingthread);
+    _calldata->self->replaceThread();
+  }
 }
 
 TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mode, int *filedescriptor)
@@ -960,10 +970,15 @@ TVMStatus ThreadManager::requestFileOpen(const char *filename, int flags, int mo
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
-  pushToWaiting(currentthread);
-
   MachineFileOpen(filename, flags, mode, requestFileOperationCallback, &calldata);
-  replaceThread();
+
+  calldata.block = 1;
+  if(ThreadManager::get()->isRunning) {
+    pushToWaiting(currentthread);
+    replaceThread();
+  }
+  else
+    while(calldata.block);
 
   *filedescriptor = calldata.result;
 
@@ -984,9 +999,15 @@ TVMStatus ThreadManager::requestFileWrite(int filedescriptor, void *data, int *l
     int bytesToWrite = *length - bytesWritten < 512 ? *length - bytesWritten : 512;
 
     memcpy(memory, (uint8_t*)data + bytesWritten, bytesToWrite);
-    pushToWaiting(currentthread);
     MachineFileWrite(filedescriptor, memory, bytesToWrite, requestFileOperationCallback, &calldata);
-    replaceThread();
+
+    calldata.block = 1;
+    if(ThreadManager::get()->isRunning) {
+      pushToWaiting(currentthread);
+      replaceThread();
+    }
+    else
+      while(calldata.block);
 
     bytesWritten += calldata.result;
   }
@@ -1004,8 +1025,11 @@ TVMStatus ThreadManager::requestFileSeek(int filedescriptor, int offset, int whe
   calldata.requestingthread = currentthread;
 
   MachineFileSeek(filedescriptor, offset, whence, requestFileOperationCallback, &calldata);
-  pushToWaiting(currentthread);
-  replaceThread();
+
+  if(ThreadManager::get()->isRunning) {
+    pushToWaiting(currentthread);
+    replaceThread();
+  }
 
   if (newoffset) *newoffset = calldata.result;
 
@@ -1027,8 +1051,14 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
     int bytesToRead = *length - bytesRead < 512 ? *length - bytesRead : 512;
 
     MachineFileRead(filedescriptor, memory, bytesToRead, requestFileOperationCallback, &calldata);
-    pushToWaiting(currentthread);
-    replaceThread();
+
+    calldata.block = 1;
+    if(ThreadManager::get()->isRunning) {
+      pushToWaiting(currentthread);
+      replaceThread();
+    }
+    else
+      while(calldata.block);
 
     memcpy((uint8_t*)data + bytesRead, memory, calldata.result);
 
@@ -1049,10 +1079,12 @@ TVMStatus ThreadManager::requestFileClose(int filedescriptor)
   calldata.self = this;
   calldata.requestingthread = currentthread;
 
-  pushToWaiting(currentthread);
-
   MachineFileClose(filedescriptor, requestFileOperationCallback, &calldata);
-  replaceThread();
+
+  if(ThreadManager::get()->isRunning) {
+    pushToWaiting(currentthread);
+    replaceThread();
+  }
 
   return (calldata.result >= 0) ? VM_STATUS_SUCCESS : VM_STATUS_FAILURE;
 }
@@ -1061,9 +1093,9 @@ MutexManager* MutexManager::mutexmanager = nullptr;
 
 MutexManager* MutexManager::get()
 {
-  if(mutexmanager == nullptr)
+  if(MutexManager::get() == nullptr)
     mutexmanager = new MutexManager();
-  return mutexmanager;
+  return MutexManager::get();
 }
 MutexManager::MutexManager() :
   lastID(0)
