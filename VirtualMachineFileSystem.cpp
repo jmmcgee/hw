@@ -81,7 +81,7 @@ void FatFileSystem::readBPB()
   firstFatSector = firstBpbSector + numBpbSectors;
   numFatSectors = BPB_FATSz16;
 
-  firstRootSector = firstFatSector + numFatSectors;
+  firstRootSector = firstFatSector + numFatSectors * numFats;
   numRootSectors = ((numRootEntries * 32) + (bytesPerSector - 1)) / bytesPerSector;
 
   firstDataSector = firstRootSector + numRootSectors;
@@ -227,11 +227,11 @@ void FatFileSystem::parseRoot() const
 
       ++dirent_count;
 
-      // cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n" << flush;
-      // cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n" << flush;
+      cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n" << flush;
+      cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n" << flush;
 
-      // cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n" << flush;
-      // cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n" << flush;
+      cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n" << flush;
+      cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n" << flush;
     }
 
   }
