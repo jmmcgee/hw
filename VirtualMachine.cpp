@@ -1035,8 +1035,6 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
   while(bytesRead < *length) {
     int bytesToRead = *length - bytesRead < 512 ? *length - bytesRead : 512;
 
-    cerr << "*length=" << *length << endl;
-    cerr << "bytesToRead=" << bytesToRead << endl;
     pushToWaiting(currentthread);
     MachineFileRead(filedescriptor, memory, bytesToRead, requestFileOperationCallback, &calldata);
     replaceThread();
@@ -1045,7 +1043,6 @@ TVMStatus ThreadManager::requestFileRead(int filedescriptor, void *data, int *le
     memcpy((uint8_t*)data + bytesRead, memory, calldata.result);
 
     bytesRead += calldata.result;
-    cerr << "calldata.result=" << calldata.result << endl;
     if(calldata.result < bytesToRead)
       break;
   }
