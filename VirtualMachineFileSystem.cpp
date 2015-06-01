@@ -103,7 +103,7 @@ void FatFileSystem::readBPB()
     << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n";
   std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs
     << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n";
-  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt 
+  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt
     << ", BPB_RootEntCnt = " << (unsigned int) BPB_RootEntCnt << "\n";
   std::cerr << "FirstSectorofCluster1 = " << (unsigned int) FirstSectorofCluster1
     << ", FirstSectorofCluster2 = " << (unsigned int) FirstSectorofCluster2 << "\n";
@@ -181,74 +181,99 @@ void FatFileSystem::readRoot()
 //     SVMDateTime DModify;
 // } SVMDirectoryEntry, *SVMDirectoryEntryRef;
 
-void FatFileSystem::parseRoot() const
+TVMStatus FatFileSystem::readDirEnt(TFatBytePtr base, SVMDirectoryEntry *dirent)
 {
-  SVMDirectoryEntry *directory = new SVMDirectoryEntry[numRootEntries];
-
-  int dirent_count = 0;
-  int long_entry_n;
+  uint8_t rootBuffer[32];
   uint16_t datetime_buffer;
-  uint8_t *rootDirEntPtr;
-  SVMDirectoryEntry *dirEntRef;
+  int len = 32;
+  int long_entry_n;
+  int entry_n = 0;
 
-  for (unsigned i = 0; i < numRootEntries; i++) {
-    rootDirEntPtr = rootDir + i * 32;
-    dirEntRef = directory + dirent_count;
+  while(true)
+  {
+    seekByte(0, base + 32 * entry_n);
+    read(rootBuffer, &len);
+    assert(len == 32);
+    len = 32;
 
-    if (*((uint16_t *) (rootDirEntPtr + 26)) == 0) {
-      // short entry
-      long_entry_n = (*(rootDirEntPtr) | 0x40) - 0x40;
+    int zeroCnt;
+    for(zeroCnt = 0; zeroCnt < 32 && rootBuffer[zeroCnt] == 0; zeroCnt++);
+    if(zeroCnt >= 32)
+      return VM_STATUS_FAILURE;
+    //if ((*((uint16_t *) (rootBuffer + 26)) == 0) && (*(rootBuffer) == 0)) return VM_STATUS_FAILURE;
+
+    if (*((uint16_t *) (rootBuffer + 26)) == 0) {
+      // long entry
+      long_entry_n = (*(rootBuffer) | 0x40) - 0x40;
 
       for (int i = 0; i < 5; i++)
-        *(dirEntRef->DLongFileName + 0 + i + (long_entry_n - 1) * 13)
-          =  *((char *) rootDirEntPtr + 1 + i * 2);
+        *(dirent->DLongFileName + 0 + i + (long_entry_n - 1) * 13)
+          =  *((char *) rootBuffer + 1 + i * 2);
       for (int i = 0; i < 6; i++)
-        *(dirEntRef->DLongFileName + 5 + i + (long_entry_n - 1) * 13)
-          = *((char *) rootDirEntPtr + 14 + i * 2);
+        *(dirent->DLongFileName + 5 + i + (long_entry_n - 1) * 13)
+          = *((char *) rootBuffer + 14 + i * 2);
       for (int i = 0; i < 2; i++)
-        *(dirEntRef->DLongFileName + 11 + i + (long_entry_n - 1) * 13)
-          = *((char *) rootDirEntPtr + 28 + i * 2);
+        *(dirent->DLongFileName + 11 + i + (long_entry_n - 1) * 13)
+          = *((char *) rootBuffer + 28 + i * 2);
 
-      if (*(rootDirEntPtr) & 0x40)
+      if (*(rootBuffer) & 0x40)
+        *(dirent->DLongFileName + 13 + (long_entry_n - 1) * 13) = '\0';
 
-      *(dirEntRef->DLongFileName + 13 + (long_entry_n - 1) * 13) = '\0';
+      ++entry_n;
+
     } else {
-      // long entry
-      memcpy(&(dirEntRef->DShortFileName), rootDirEntPtr + 0, 11);
-      *(dirEntRef->DShortFileName + 11) = '\0';
-      memcpy(&(dirEntRef->DAttributes), rootDirEntPtr + 12, 1);
-      memcpy(&(dirEntRef->DSize), rootDirEntPtr + 28, 4);
+      // short entry
+      memcpy(&(dirent->DShortFileName), rootBuffer + 0, 11);
+      *(dirent->DShortFileName + 11) = '\0';
+      memcpy(&(dirent->DAttributes), rootBuffer + 12, 1);
+      memcpy(&(dirent->DSize), rootBuffer + 28, 4);
 
-      memcpy(&datetime_buffer, rootDirEntPtr + 14, 2);
+      memcpy(&datetime_buffer, rootBuffer + 14, 2);
       cerr << "created time = " << hex << datetime_buffer << "\n" << flush;
 
 
-      memcpy(&datetime_buffer, rootDirEntPtr + 16, 2);
+      memcpy(&datetime_buffer, rootBuffer + 16, 2);
       cerr << "created date = " << hex << datetime_buffer << "\n" << flush;
 
 
-      memcpy(&datetime_buffer, rootDirEntPtr + 18, 2);
+      memcpy(&datetime_buffer, rootBuffer + 18, 2);
       cerr << "access date = " << hex << datetime_buffer << "\n" << flush;
 
 
-      memcpy(&datetime_buffer, rootDirEntPtr + 22, 2);
+      memcpy(&datetime_buffer, rootBuffer + 22, 2);
       cerr << "modified time = " << hex << datetime_buffer << "\n" << flush;
 
 
-      memcpy(&datetime_buffer, rootDirEntPtr + 24, 2);
+      memcpy(&datetime_buffer, rootBuffer + 24, 2);
       cerr << "modified date = " << hex << datetime_buffer << "\n" << flush;
 
+      cerr << "directory.DLongFileName = " << dirent->DLongFileName << "\n";
+      cerr << "directory.DShortFileName = " << dirent->DShortFileName << "\n";
 
-      ++dirent_count;
-
-      cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n";
-      cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n";
-
-      cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n";
-      cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n";
+      cerr << "directory.DAttributes = " << hex << dirent->DAttributes << "\n";
+      cerr << "directory.DSize = " << dec << dirent->DSize << "\n";
       cerr << flush;
-    }
 
+      break;
+    }
+  }
+  return VM_STATUS_SUCCESS;
+}
+
+void FatFileSystem::parseRoot()
+{
+  SVMDirectoryEntry *directory = new SVMDirectoryEntry[numRootEntries];
+  SVMDirectoryEntry dirent;
+
+  int dirent_count = 0;
+
+  seekSector(0, firstRootSector);
+  TFatBytePtr entryByte = currentByte;
+
+  while(currentByte < firstDataSector * bytesPerSector)
+  {
+    if (readDirEnt(currentByte, &dirent) == VM_STATUS_SUCCESS)
+      directory[dirent_count++] = dirent;
   }
 }
 
@@ -289,6 +314,8 @@ TVMStatus FatFileSystem::write(void* data, int *length)
 
 TVMStatus FatFileSystem::seekByte(TFatBytePtr base, TFatBytePtr offset)
 {
+  assert(base == 0);
+
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
@@ -302,6 +329,8 @@ TVMStatus FatFileSystem::seekByte(TFatBytePtr base, TFatBytePtr offset)
 
 TVMStatus FatFileSystem::seekSector(TFatSectorPtr base, TFatSectorPtr offset)
 {
+  assert(base == 0);
+
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
@@ -317,6 +346,8 @@ TVMStatus FatFileSystem::seekSector(TFatSectorPtr base, TFatSectorPtr offset)
 
 TVMStatus FatFileSystem::seekCluster(TFatClusterPtr base, TFatClusterPtr offset)
 {
+  assert(base == 0);
+
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
@@ -330,4 +361,3 @@ TVMStatus FatFileSystem::seekCluster(TFatClusterPtr base, TFatClusterPtr offset)
   else
     return VM_STATUS_FAILURE;
 }
-

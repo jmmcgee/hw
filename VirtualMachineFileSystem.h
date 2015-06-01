@@ -60,7 +60,10 @@ class FatFileSystem
     void readBPB();
     void readFAT();
     void readRoot();
-    void parseRoot() const;
+
+    void parseRoot();
+
+    TVMStatus readDirEnt(TFatBytePtr base, SVMDirectoryEntry *dirent);
 
     TFatClusterPtr getCluster(int byte);
     TFatSectorPtr getSector(int byte);
@@ -129,4 +132,3 @@ class Directory
     void rewind();
     void unlink();
 };
-
