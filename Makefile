@@ -31,7 +31,7 @@ INCLUDES += -I.
 LIBRARIES = -ldl
 
 CFLAGS += -Wall $(INCLUDES) $(DEFINES)
-CPPFLAGS+= -std=c++11
+CPPFLAGS+= -std=c++11 -Wno-unused-variable -Wno-unused-but-set-variable
 APPCFLAGS += -Wall -fPIC $(INCLUDES) $(DEFINES)
 
 ifdef DEBUG_MODE

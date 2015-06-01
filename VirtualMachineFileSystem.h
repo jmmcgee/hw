@@ -11,6 +11,9 @@
 class File;
 class Directory;
 class FatFileSystem;
+typedef int TFatBytePtr;
+typedef int TFatSectorPtr;
+typedef uint16_t TFatClusterPtr;
 
 class FatFileSystem
 {
@@ -22,16 +25,16 @@ class FatFileSystem
     unsigned int numFats;
     unsigned int numRootEntries;
 
-    unsigned int firstBpbSector;
+    TFatSectorPtr firstBpbSector;
     unsigned int numBpbSectors;
 
-    unsigned int firstFatSector;
+    TFatSectorPtr firstFatSector;
     unsigned int numFatSectors;
 
-    unsigned int firstRootSector;
+    TFatSectorPtr firstRootSector;
     unsigned int numRootSectors;
 
-    unsigned int firstDataSector;
+    TFatSectorPtr firstDataSector;
     unsigned int numDataSectors;
 
     unsigned int RootDirSectors;
@@ -40,7 +43,7 @@ class FatFileSystem
     unsigned int FirstSectorofCluster1;
     unsigned int FirstSectorofCluster2;
 
-    uint16_t *FAT;
+    TFatClusterPtr *FAT;
     uint8_t *rootDir;
     std::string currentDirectory;
 
@@ -48,9 +51,7 @@ class FatFileSystem
     std::map<int, File*> files;
     std::map<int, Directory*> directories;
 
-    int currentByte;
-
-    SVMDirectoryEntry *directory;
+    TFatBytePtr currentByte;
 
   public:
     FatFileSystem(const char* mount);
@@ -61,13 +62,13 @@ class FatFileSystem
     void readRoot();
     void parseRoot() const;
 
-    int getCluster(int byte);
-    int getSector(int byte);
-    TVMStatus read(void* data, int *length); 
-    TVMStatus write(void* data, int *length); 
-    TVMStatus seekByte(int base, int offset);
-    TVMStatus seekSector(int base, int offset);
-    TVMStatus seekCluster(int base, int offset);
+    TFatClusterPtr getCluster(int byte);
+    TFatSectorPtr getSector(int byte);
+    TVMStatus read(void* data, int *length);
+    TVMStatus write(void* data, int *length);
+    TVMStatus seekByte(TFatBytePtr base, TFatBytePtr offset);
+    TVMStatus seekSector(TFatSectorPtr base, TFatSectorPtr offset);
+    TVMStatus seekCluster(TFatClusterPtr base, TFatClusterPtr offset);
 
     TVMStatus fileOpen(const char* filename, int flags, int mode, int *fd);
     TVMStatus fileClose(int fd);
@@ -92,13 +93,14 @@ class File
     const int fd;
     const int flags;
     const int mode;
-    const uint16_t firstCluster;
+    const TFatClusterPtr firstCluster;
+    const TFatBytePtr dirPtr;
 
-    int currentByte;
+    TFatBytePtr currentByte;
 
   public:
 
-    File(int fd, int flags, int mode, SVMDirectoryEntry *dirent);
+    File(int fd, int flags, int mode, TFatBytePtr dirPtr);
 
     int getFD();
 
@@ -112,12 +114,13 @@ class Directory
   private:
     const int fd;
     const uint16_t firstCluster;
+    const TFatBytePtr dirPtr;
 
-    int currentByte;
+    TFatBytePtr currentByte;
 
   public:
 
-    Directory(int fd, SVMDirectoryEntry *dirent);
+    Directory(int fd, TFatBytePtr dirPtr);
 
     int getFD();
 

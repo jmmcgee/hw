@@ -141,7 +141,8 @@ void FatFileSystem::readFAT()
 }
 
 void FatFileSystem::readRoot()
-{
+{  // NOTE: THIS IS NOT CORRECT, must account for offset of first data sector
+
   TVMStatus status;
 
   int size = numRootSectors * bytesPerSector;
@@ -251,14 +252,15 @@ void FatFileSystem::parseRoot() const
   }
 }
 
-int FatFileSystem::getCluster(int byte)
+TFatClusterPtr FatFileSystem::getCluster(TFatBytePtr byte)
 {
   if( getSector(byte) > firstDataSector )
     return -1;
+  // NOTE: THIS IS NOT CORRECT, must account for offset of first data sector
   return byte / (bytesPerSector * sectorsPerCluster);
 }
 
-int FatFileSystem::getSector(int byte)
+TFatSectorPtr FatFileSystem::getSector(TFatBytePtr byte)
 {
   return byte / bytesPerSector;
 }
@@ -285,7 +287,7 @@ TVMStatus FatFileSystem::write(void* data, int *length)
   return status;
 }
 
-TVMStatus FatFileSystem::seekByte(int base, int offset)
+TVMStatus FatFileSystem::seekByte(TFatBytePtr base, TFatBytePtr offset)
 {
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
@@ -298,7 +300,7 @@ TVMStatus FatFileSystem::seekByte(int base, int offset)
     return VM_STATUS_FAILURE;
 }
 
-TVMStatus FatFileSystem::seekSector(int base, int offset)
+TVMStatus FatFileSystem::seekSector(TFatSectorPtr base, TFatSectorPtr offset)
 {
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
@@ -313,13 +315,14 @@ TVMStatus FatFileSystem::seekSector(int base, int offset)
     return VM_STATUS_FAILURE;
 }
 
-TVMStatus FatFileSystem::seekCluster(int base, int offset)
+TVMStatus FatFileSystem::seekCluster(TFatClusterPtr base, TFatClusterPtr offset)
 {
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
   offset *= bytesPerSector * sectorsPerCluster;
   base *= bytesPerSector * sectorsPerCluster;
+  // NOTE: THIS IS NOT CORRECT, must account for offset of first data sector
   status = tm->requestFileSeek(mountFD, offset, base, &currentByte);
 
   if (currentByte == offset + base)
