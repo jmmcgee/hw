@@ -12,7 +12,12 @@
 using namespace std;
 
 FatFileSystem::FatFileSystem(const char* mount)
-  : mountFD(0)
+  : mountFD(0),
+    FAT(nullptr),
+    rootDir(nullptr),
+    currentDirectory("/"),
+    lastFD(2),
+    currentByte(0)
 {
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
@@ -34,16 +39,14 @@ FatFileSystem::~FatFileSystem()
 
 void FatFileSystem::readBPB()
 {
-  ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
   uint8_t bpb[512] = {0};
   int len = 512;
-  int offset = 0;
-  status = tm->requestFileSeek(mountFD, 0, 0, &offset);
-  cerr << "(status=" << status << ")" << "SEEKED to " << offset << "\n" << flush;
+  status = seekByte(0, 0);
+  cerr << "(status=" << status << ")" << "SEEKED to " << currentByte << "\n" << flush;
 
-  status = tm->requestFileRead(mountFD, bpb, &len);
+  status = read(bpb, &len);
   cerr << "(status=" << status << ")" << "READ " << len << " bytes\n" << flush;
 
 
@@ -96,27 +99,35 @@ void FatFileSystem::readBPB()
   assert(numFats == 2);
   assert(numRootSectors * bytesPerSector == numRootEntries * 32);
 
-  std::cerr << "BPB_BytsPerSec = " << (unsigned int) BPB_BytsPerSec << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n";
-  std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n";
-  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt << ", BPB_RootEntCnt = " << (unsigned int) BPB_RootEntCnt << "\n";
-  std::cerr << "FirstSectorofCluster1 = " << (unsigned int) FirstSectorofCluster1 << ", FirstSectorofCluster2 = " << (unsigned int) FirstSectorofCluster2 << "\n";
+  std::cerr << "BPB_BytsPerSec = " << (unsigned int) BPB_BytsPerSec
+    << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n";
+  std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs
+    << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n";
+  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt 
+    << ", BPB_RootEntCnt = " << (unsigned int) BPB_RootEntCnt << "\n";
+  std::cerr << "FirstSectorofCluster1 = " << (unsigned int) FirstSectorofCluster1
+    << ", FirstSectorofCluster2 = " << (unsigned int) FirstSectorofCluster2 << "\n";
   std::cerr << "\n";
-  std::cerr << "firstBpbSector = " << (unsigned int) firstBpbSector << ", numBpbSectors = " << (unsigned int) numBpbSectors << "\n";
-  std::cerr << "firstRootSector = " << (unsigned int) firstRootSector << ", numRootSectors = " << (unsigned int) numRootSectors << "\n";
-  std::cerr << "firstFatSector = " << (unsigned int) firstFatSector << ", numFatSectors = " << (unsigned int) numFatSectors << "\n";
-  std::cerr << "firstDataSector = " << (unsigned int) firstDataSector << ", numDataSectors = " << (unsigned int) numDataSectors << "\n";
+
+  std::cerr << "firstBpbSector = " << (unsigned int) firstBpbSector
+    << ", numBpbSectors = " << (unsigned int) numBpbSectors << "\n";
+  std::cerr << "firstRootSector = " << (unsigned int) firstRootSector
+    << ", numRootSectors = " << (unsigned int) numRootSectors << "\n";
+  std::cerr << "firstFatSector = " << (unsigned int) firstFatSector
+    << ", numFatSectors = " << (unsigned int) numFatSectors << "\n";
+  std::cerr << "firstDataSector = " << (unsigned int) firstDataSector
+    << ", numDataSectors = " << (unsigned int) numDataSectors << "\n";
   std::cerr << endl;
 }
 
 void FatFileSystem::readFAT()
 {
-  ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
   int size = numFats * numFatSectors * bytesPerSector;
   FAT = new uint16_t[size / 2];
   status = seekSector(0, firstFatSector);
-  status = tm->requestFileRead(mountFD, FAT, &size);
+  status = read(FAT, &size);
 
   cerr << "FAT dump head... " << "readFAT size: " << size << "\n" << flush;
   for (int e = 0; e < 16; e++) {  // print 16 lines (256 bytes)
@@ -131,13 +142,12 @@ void FatFileSystem::readFAT()
 
 void FatFileSystem::readRoot()
 {
-  ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
   int size = numRootSectors * bytesPerSector;
   rootDir = new uint8_t[size];
   status = seekSector(0, firstRootSector);
-  status = tm->requestFileRead(mountFD, rootDir, &size);
+  status = read(rootDir, &size);
 
   cerr << "Root dump head... " << "readRoot size: " << size << "\n" << flush;
   for (int e = 0; e < 16; e++) {
@@ -189,11 +199,14 @@ void FatFileSystem::parseRoot() const
       long_entry_n = (*(rootDirEntPtr) | 0x40) - 0x40;
 
       for (int i = 0; i < 5; i++)
-        *(dirEntRef->DLongFileName + 0 + i + (long_entry_n - 1) * 13) =  *((char *) rootDirEntPtr + 1 + i * 2);
+        *(dirEntRef->DLongFileName + 0 + i + (long_entry_n - 1) * 13)
+          =  *((char *) rootDirEntPtr + 1 + i * 2);
       for (int i = 0; i < 6; i++)
-        *(dirEntRef->DLongFileName + 5 + i + (long_entry_n - 1) * 13) = *((char *) rootDirEntPtr + 14 + i * 2);
+        *(dirEntRef->DLongFileName + 5 + i + (long_entry_n - 1) * 13)
+          = *((char *) rootDirEntPtr + 14 + i * 2);
       for (int i = 0; i < 2; i++)
-        *(dirEntRef->DLongFileName + 11 + i + (long_entry_n - 1) * 13) = *((char *) rootDirEntPtr + 28 + i * 2);
+        *(dirEntRef->DLongFileName + 11 + i + (long_entry_n - 1) * 13)
+          = *((char *) rootDirEntPtr + 28 + i * 2);
 
       if (*(rootDirEntPtr) & 0x40)
 
@@ -227,35 +240,74 @@ void FatFileSystem::parseRoot() const
 
       ++dirent_count;
 
-      cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n" << flush;
-      cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n" << flush;
+      cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n";
+      cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n";
 
-      cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n" << flush;
-      cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n" << flush;
+      cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n";
+      cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n";
+      cerr << flush;
     }
 
   }
 }
 
+int FatFileSystem::getCluster(int byte)
+{
+  if( getSector(byte) > firstDataSector )
+    return -1;
+  return byte / (bytesPerSector * sectorsPerCluster);
+}
+
+int FatFileSystem::getSector(int byte)
+{
+  return byte / bytesPerSector;
+}
+
+TVMStatus FatFileSystem::read(void* data, int *length)
+{
+  ThreadManager* tm = ThreadManager::get();
+  TVMStatus status;
+
+  status = tm->requestFileRead(mountFD, data, length);
+  currentByte += *length;
+
+  return status;
+}
+
+TVMStatus FatFileSystem::write(void* data, int *length)
+{
+  ThreadManager* tm = ThreadManager::get();
+  TVMStatus status;
+
+  status = tm->requestFileWrite(mountFD, data, length);
+  currentByte += *length;
+
+  return status;
+}
+
+TVMStatus FatFileSystem::seekByte(int base, int offset)
+{
+  ThreadManager* tm = ThreadManager::get();
+  TVMStatus status;
+
+  status = tm->requestFileSeek(mountFD, offset, base, &currentByte);
+
+  if (currentByte == offset + base)
+    return VM_STATUS_SUCCESS;
+  else
+    return VM_STATUS_FAILURE;
+}
+
 TVMStatus FatFileSystem::seekSector(int base, int offset)
 {
   ThreadManager* tm = ThreadManager::get();
-
   TVMStatus status;
-
-  int newoffset;
 
   offset *= bytesPerSector;
   base *= bytesPerSector;
+  status = tm->requestFileSeek(mountFD, offset, base, &currentByte);
 
-  cerr << "seekSector called with offset * BPB_BytsPerSec = " << offset << ", base * BPB_BytsPerSec = " << base << "\n" << flush;
-
-  status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
-
-  cerr << "seekSector's newoffset is " << newoffset << "\n";
-  cerr << "seekSector's requestFileSeek status is " << status << "\n" << flush;
-
-  if (newoffset == offset + base)
+  if (currentByte == offset + base)
     return VM_STATUS_SUCCESS;
   else
     return VM_STATUS_FAILURE;
@@ -266,14 +318,13 @@ TVMStatus FatFileSystem::seekCluster(int base, int offset)
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
-  int newoffset;
-
   offset *= bytesPerSector * sectorsPerCluster;
   base *= bytesPerSector * sectorsPerCluster;
-  status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
+  status = tm->requestFileSeek(mountFD, offset, base, &currentByte);
 
-  if (newoffset == offset + base)
+  if (currentByte == offset + base)
     return VM_STATUS_SUCCESS;
   else
     return VM_STATUS_FAILURE;
 }
+

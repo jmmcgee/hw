@@ -4,8 +4,13 @@
 #include <stdint.h>
 
 #include <map>
+#include <string>
 
 #include "VirtualMachine.h"
+
+class File;
+class Directory;
+class FatFileSystem;
 
 class FatFileSystem
 {
@@ -37,10 +42,13 @@ class FatFileSystem
 
     uint16_t *FAT;
     uint8_t *rootDir;
+    std::string currentDirectory;
 
-    uint16_t currentCluster;
-    uint16_t currentSector;
-    uint16_t currentByte;
+    int lastFD;
+    std::map<int, File*> files;
+    std::map<int, Directory*> directories;
+
+    int currentByte;
 
     SVMDirectoryEntry *directory;
 
@@ -53,6 +61,10 @@ class FatFileSystem
     void readRoot();
     void parseRoot() const;
 
+    int getCluster(int byte);
+    int getSector(int byte);
+    TVMStatus read(void* data, int *length); 
+    TVMStatus write(void* data, int *length); 
     TVMStatus seekByte(int base, int offset);
     TVMStatus seekSector(int base, int offset);
     TVMStatus seekCluster(int base, int offset);
@@ -82,9 +94,7 @@ class File
     const int mode;
     const uint16_t firstCluster;
 
-    uint16_t currentCluster;
-    uint16_t currentSector;
-    uint16_t currentByte;
+    int currentByte;
 
   public:
 
@@ -92,9 +102,9 @@ class File
 
     int getFD();
 
-    read(void *data, int *length);
-    write(void *data, int *length);
-    seek(int offset, int whence, int *newoffset);
+    void read(void *data, int *length);
+    void write(void *data, int *length);
+    void seek(int offset, int whence, int *newoffset);
 };
 
 class Directory
@@ -103,9 +113,7 @@ class Directory
     const int fd;
     const uint16_t firstCluster;
 
-    uint16_t currentCluster;
-    uint16_t currentSector;
-    uint16_t currentByte;
+    int currentByte;
 
   public:
 
@@ -113,9 +121,9 @@ class Directory
 
     int getFD();
 
-    read(void *data, int *length);
-    write(void *data, int *length);
-    rewind();
-    unlink();
+    void read(void *data, int *length);
+    void write(void *data, int *length);
+    void rewind();
+    void unlink();
 };
 
