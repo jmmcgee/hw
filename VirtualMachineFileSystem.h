@@ -34,7 +34,7 @@ class FatFileSystem
     unsigned int FirstSectorofCluster2;
 
     uint16_t *FAT;
-    uint8_t *RootDir;
+    uint8_t *rootDir;
 
     SVMDirectoryEntry *directory;
 
@@ -47,7 +47,7 @@ class FatFileSystem
     void readRoot();
     void parseRoot() const;
 
-    bool seekSector(int base, int offset);
-    bool seekCluster(int base, int offset);
+    TVMStatus seekSector(int base, int offset);
+    TVMStatus seekCluster(int base, int offset);
 };
 #endif

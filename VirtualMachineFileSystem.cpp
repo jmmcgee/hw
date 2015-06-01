@@ -106,15 +106,15 @@ void FatFileSystem::readFAT()
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
-  int size = numFatSectors * bytesPerSector;
-
-  FAT = new uint16_t[size];
+  int size = numFats * numFatSectors * bytesPerSector;
+  FAT = new uint16_t[size / 2];
+  status = seekSector(0, firstFatSector);
   status = tm->requestFileRead(mountFD, FAT, &size);
 
   cerr << "FAT dump head... " << "readFAT size: " << size << "\n" << flush;
-  for (int e = 0; e < 16; e++) {
-    for (int i = 0; i < 8; i++) {
-      for (int j = 0; j < 2; j++)
+  for (int e = 0; e < 16; e++) {  // print 16 lines (256 bytes)
+    for (int i = 0; i < 8; i++) { // print 8 groups (16 bytes)
+      for (int j = 0; j < 2; j++) // print 2 bytes (4 nibbles), space
         printf("%02X", static_cast<int>(((uint8_t *) FAT)[e * 16 + i * 2 + j]));
       cerr << " " << flush;
     }
@@ -128,36 +128,19 @@ void FatFileSystem::readRoot()
   TVMStatus status;
 
   int size = numRootSectors * bytesPerSector;
-
-  RootDir = new uint8_t[size];
-  status = tm->requestFileRead(mountFD, RootDir, &size);
+  rootDir = new uint8_t[size];
+  status = seekSector(0, firstRootSector);
+  status = tm->requestFileRead(mountFD, rootDir, &size);
 
   cerr << "Root dump head... " << "readRoot size: " << size << "\n" << flush;
   for (int e = 0; e < 16; e++) {
     for (int i = 0; i < 16; i++) {
       for (int j = 0; j < 2; j++)
-        printf("%02X", static_cast<int>(RootDir[e * 32 + i * 2 + j]));
+        printf("%02X", static_cast<int>(rootDir[e * 32 + i * 2 + j]));
       cerr << " " << flush;
     }
     cerr << "\n" << flush;
   }
-
-  // RootDirClusters = ((BPB_RootEntCnt * 32) + (BPB_BytsPerSec - 1)) / (BPB_BytsPerSec * BPB_SecPerClus);
-  // for(int i = 0; i < RootDirClusters; i++) {
-  //   int len = BPB_BytsPerSec * BPB_SecPerClus;
-  //   uint8_t *data = new uint8_t[len];
-  //   status = tm->requestFileRead(mountFD, data, &len);
-  //
-  //   for(int j = 0; j < len; j++) {
-  //     cerr << hex << data[j] << flush;
-  //   }
-  // }
-
-  /*
-  for (int i = 0; i < BPB_RootEntCnt; i++) {
-    readDir();
-  }
-  */
 }
 //
 // typedef struct{
@@ -191,7 +174,7 @@ void FatFileSystem::parseRoot() const
   SVMDirectoryEntry *dirEntRef;
 
   for (unsigned i = 0; i < numRootEntries; i++) {
-    rootDirEntPtr = RootDir + i * 32;
+    rootDirEntPtr = rootDir + i * 32;
     dirEntRef = directory + dirent_count;
 
     if (*((uint16_t *) (rootDirEntPtr + 26)) == 0) {
@@ -206,6 +189,7 @@ void FatFileSystem::parseRoot() const
         *(dirEntRef->DLongFileName + 11 + i + (long_entry_n - 1) * 13) = *((char *) rootDirEntPtr + 28 + i * 2);
 
       if (*(rootDirEntPtr) & 0x40)
+
       *(dirEntRef->DLongFileName + 13 + (long_entry_n - 1) * 13) = '\0';
     } else {
       // long entry
@@ -238,6 +222,7 @@ void FatFileSystem::parseRoot() const
 
       // cerr << "directory.DLongFileName = " << dirEntRef->DLongFileName << "\n" << flush;
       // cerr << "directory.DShortFileName = " << dirEntRef->DShortFileName << "\n" << flush;
+
       // cerr << "directory.DAttributes = " << hex << dirEntRef->DAttributes << "\n" << flush;
       // cerr << "directory.DSize = " << dec << dirEntRef->DSize << "\n" << flush;
     }
@@ -245,9 +230,10 @@ void FatFileSystem::parseRoot() const
   }
 }
 
-bool FatFileSystem::seekSector(int base, int offset)
+TVMStatus FatFileSystem::seekSector(int base, int offset)
 {
   ThreadManager* tm = ThreadManager::get();
+
   TVMStatus status;
 
   int newoffset;
@@ -259,15 +245,16 @@ bool FatFileSystem::seekSector(int base, int offset)
 
   status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
 
+  cerr << "seekSector's newoffset is " << newoffset << "\n";
   cerr << "seekSector's requestFileSeek status is " << status << "\n" << flush;
 
   if (newoffset == offset + base)
-    return true;
+    return VM_STATUS_SUCCESS;
   else
-    return false;
+    return VM_STATUS_FAILURE;
 }
 
-bool FatFileSystem::seekCluster(int base, int offset)
+TVMStatus FatFileSystem::seekCluster(int base, int offset)
 {
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
@@ -279,7 +266,7 @@ bool FatFileSystem::seekCluster(int base, int offset)
   status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
 
   if (newoffset == offset + base)
-    return true;
+    return VM_STATUS_SUCCESS;
   else
-    return false;
+    return VM_STATUS_FAILURE;
 }
