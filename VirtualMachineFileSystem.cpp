@@ -1,6 +1,7 @@
 #include "VirtualMachineFileSystem.h"
 
 #include <fcntl.h>
+#include <assert.h>
 
 #include <iostream>
 #include <fstream>
@@ -88,6 +89,12 @@ void FatFileSystem::readBPB()
 
   FirstSectorofCluster1 = ((1 - 2) * BPB_SecPerClus) + firstDataSector;
   FirstSectorofCluster2 = ((2 - 2) * BPB_SecPerClus) + firstDataSector;
+
+  assert(bytesPerSector == 512);
+  assert(sectorsPerCluster == 2);
+  assert(numRootEntries == 512);
+  assert(numFats == 2);
+  assert(numRootSectors * bytesPerSector == numRootEntries * 32);
 
   std::cerr << "BPB_BytsPerSec = " << (unsigned int) BPB_BytsPerSec << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n";
   std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n";
