@@ -103,7 +103,7 @@ class File
 
   public:
 
-    File(int fd, int flags, int mode, TFatBytePtr dirPtr);
+    File(int fd, int flags, int mode, TFatBytePtr dirPtr, TFatClusterPtr firstCluster);
 
     int getFD();
 

@@ -1,6 +1,8 @@
 #ifndef VIRTUALMACHINE_H
 #define VIRTUALMACHINE_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -62,6 +64,7 @@ typedef struct{
 typedef struct{
     char DLongFileName[VM_FILE_SYSTEM_MAX_PATH];
     char DShortFileName[VM_FILE_SYSTEM_SFN_SIZE];
+    uint16_t DFirstCluster;
     unsigned int DSize;
     unsigned char DAttributes;
     SVMDateTime DCreate;
@@ -134,4 +137,3 @@ TVMStatus VMFileSystemRelativePath(char *relpath, const char *basepath, const ch
 #endif
 
 #endif
-

@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <assert.h>
 
+#include <string>
 #include <iostream>
 #include <fstream>
 
@@ -29,6 +30,9 @@ FatFileSystem::FatFileSystem(const char* mount)
   readFAT();
   readRoot();
   parseRoot();
+
+  int x;
+  fileOpen("./Machine.cpp", 0, 0, &x);
 }
 
 FatFileSystem::~FatFileSystem()
@@ -229,30 +233,30 @@ TVMStatus FatFileSystem::readDirEnt(TFatBytePtr base, SVMDirectoryEntry *dirent)
       memcpy(&(dirent->DSize), rootBuffer + 28, 4);
 
       memcpy(&datetime_buffer, rootBuffer + 14, 2);
-      cerr << "created time = " << hex << datetime_buffer << "\n" << flush;
+      // cerr << "created time = " << hex << datetime_buffer << "\n" << flush;
 
 
       memcpy(&datetime_buffer, rootBuffer + 16, 2);
-      cerr << "created date = " << hex << datetime_buffer << "\n" << flush;
+      // cerr << "created date = " << hex << datetime_buffer << "\n" << flush;
 
 
       memcpy(&datetime_buffer, rootBuffer + 18, 2);
-      cerr << "access date = " << hex << datetime_buffer << "\n" << flush;
+      // cerr << "access date = " << hex << datetime_buffer << "\n" << flush;
 
 
       memcpy(&datetime_buffer, rootBuffer + 22, 2);
-      cerr << "modified time = " << hex << datetime_buffer << "\n" << flush;
+      // cerr << "modified time = " << hex << datetime_buffer << "\n" << flush;
 
 
       memcpy(&datetime_buffer, rootBuffer + 24, 2);
-      cerr << "modified date = " << hex << datetime_buffer << "\n" << flush;
-
-      cerr << "directory.DLongFileName = " << dirent->DLongFileName << "\n";
-      cerr << "directory.DShortFileName = " << dirent->DShortFileName << "\n";
-
-      cerr << "directory.DAttributes = " << hex << dirent->DAttributes << "\n";
-      cerr << "directory.DSize = " << dec << dirent->DSize << "\n";
-      cerr << flush;
+      // cerr << "modified date = " << hex << datetime_buffer << "\n" << flush;
+      //
+      // cerr << "directory.DLongFileName = " << dirent->DLongFileName << "\n";
+      // cerr << "directory.DShortFileName = " << dirent->DShortFileName << "\n";
+      //
+      // cerr << "directory.DAttributes = " << hex << dirent->DAttributes << "\n";
+      // cerr << "directory.DSize = " << dec << dirent->DSize << "\n";
+      // cerr << flush;
 
       break;
     }
@@ -360,4 +364,58 @@ TVMStatus FatFileSystem::seekCluster(TFatClusterPtr base, TFatClusterPtr offset)
     return VM_STATUS_SUCCESS;
   else
     return VM_STATUS_FAILURE;
+}
+
+TVMStatus FatFileSystem::fileOpen(const char* filename, int flags, int mode, int *fd)
+{
+  bool fileExists = false;
+
+  string candidateFilename = string(filename);
+
+  while (candidateFilename.substr(0, 2) == "./" || candidateFilename.substr(0, 1) == "/")
+  {
+    if (candidateFilename.substr(0, 2) == "./") candidateFilename = candidateFilename.substr(2);
+    if (candidateFilename.substr(0, 1) == "/") candidateFilename = candidateFilename.substr(1);
+  }
+
+  SVMDirectoryEntry dirent;
+  int dirent_count = 0;
+
+  seekSector(0, firstRootSector);
+  TFatBytePtr entryByte = currentByte;
+
+  if (VMFileSystemValidPathName(dirent.DLongFileName) != VM_STATUS_SUCCESS)
+    return VM_STATUS_FAILURE;
+
+  while(currentByte < firstDataSector * bytesPerSector)
+  {
+    if (readDirEnt((entryByte = currentByte), &dirent) == VM_STATUS_FAILURE)
+      continue;
+
+    if (string(dirent.DLongFileName) == candidateFilename)
+    {
+      fileExists = true;
+      break;
+    }
+  }
+
+  if (!fileExists)
+    return VM_STATUS_FAILURE;
+
+  File *file = new File(++lastFD, flags, mode, entryByte, dirent.DFirstCluster);
+  files.insert(std::pair<int, File*>(lastFD, file));
+
+  return VM_STATUS_SUCCESS;
+}
+
+// TVMStatus fileClose(int fd);
+
+File::File(int fd, int flags, int mode, TFatBytePtr dirPtr, TFatClusterPtr firstCluster):
+  fd(fd),
+  flags(flags),
+  mode(mode),
+  dirPtr(dirPtr),
+  firstCluster(firstCluster)
+{
+  cerr << "file entry made" << endl;
 }
