@@ -48,14 +48,14 @@ void FatFileSystem::readBPB()
 
   uint32_t  BS_jmpBoot     = *(uint32_t*)(bpb + 0);
   //BS_OEMName
-  BPB_BytsPerSec = *(uint16_t*)(bpb + 11);
-  BPB_SecPerClus = *(uint8_t*)(bpb + 13);
-  BPB_RsvdSecCnt = *(uint16_t*)(bpb + 14);
-  BPB_NumFATs    = *(uint8_t*)(bpb + 16);
-  BPB_RootEntCnt = *(uint16_t*)(bpb + 17);
+  uint16_t BPB_BytsPerSec = *(uint16_t*)(bpb + 11);
+  uint8_t BPB_SecPerClus = *(uint8_t*)(bpb + 13);
+  uint16_t BPB_RsvdSecCnt = *(uint16_t*)(bpb + 14);
+  uint8_t BPB_NumFATs    = *(uint8_t*)(bpb + 16);
+  uint16_t BPB_RootEntCnt = *(uint16_t*)(bpb + 17);
   uint16_t  BPB_TotSec16   = *(uint16_t*)(bpb + 19);
   uint8_t   BPB_Media      = *(uint8_t*)(bpb + 21);
-  BPB_FATSz16    = *(uint16_t*)(bpb + 22);
+  uint16_t BPB_FATSz16    = *(uint16_t*)(bpb + 22);
   uint16_t  BPB_SecPerTrk  = *(uint16_t*)(bpb + 24);
   uint16_t  BPB_NumHeads   = *(uint16_t*)(bpb + 26);
   uint32_t  BPB_HiddSec    = *(uint32_t*)(bpb + 28);
@@ -67,14 +67,21 @@ void FatFileSystem::readBPB()
   //BS_VolLab
   //uint_t BS_FilSysType
 
+
+  // Populate Global Information
+  bytesPerSector = BPB_BytsPerSec;
+  sectorsPerCluster = BPB_SecPerClus;
+  numRootEntries = BPB_RootEntCnt;
+  numFats = BPB_NumFATs;
+
   firstBpbSector = 0;
   numBpbSectors = BPB_RsvdSecCnt;
 
   firstFatSector = firstBpbSector + numBpbSectors;
-  numFatSectors = BPB_NumFATs * BPB_FATSz16;
+  numFatSectors = BPB_FATSz16;
 
   firstRootSector = firstFatSector + numFatSectors;
-  numRootSectors = ((BPB_RootEntCnt * 32) + (BPB_BytsPerSec - 1)) / BPB_BytsPerSec;
+  numRootSectors = ((numRootEntries * 32) + (bytesPerSector - 1)) / bytesPerSector;
 
   firstDataSector = firstRootSector + numRootSectors;
   numDataSectors = BPB_TotSec32 - firstDataSector;
@@ -82,15 +89,16 @@ void FatFileSystem::readBPB()
   FirstSectorofCluster1 = ((1 - 2) * BPB_SecPerClus) + firstDataSector;
   FirstSectorofCluster2 = ((2 - 2) * BPB_SecPerClus) + firstDataSector;
 
-  std::cerr << "BPB_BytsPerSec = " << (unsigned int) BPB_BytsPerSec << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n" << std::flush;
-  std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n" << std::flush;
-  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt << ", BPB_RootEntCnt = " << (unsigned int) BPB_RootEntCnt << "\n" << std::flush;
-  std::cerr << "FirstSectorofCluster1 = " << (unsigned int) FirstSectorofCluster1 << ", FirstSectorofCluster2 = " << (unsigned int) FirstSectorofCluster2 << "\n" << std::flush;
-
-  std::cerr << "firstBpbSector = " << (unsigned int) firstBpbSector << ", numBpbSectors = " << (unsigned int) numBpbSectors << "\n" << std::flush;
-  std::cerr << "firstFatSector = " << (unsigned int) firstFatSector << ", numFatSectors = " << (unsigned int) numFatSectors << "\n" << std::flush;
-  std::cerr << "firstRootSector = " << (unsigned int) firstRootSector << ", numRootSectors = " << (unsigned int) numRootSectors << "\n" << std::flush;
-  std::cerr << "firstDataSector = " << (unsigned int) firstDataSector << ", numDataSectors = " << (unsigned int) numDataSectors << "\n" << std::flush;
+  std::cerr << "BPB_BytsPerSec = " << (unsigned int) BPB_BytsPerSec << ", BPB_SecPerClus = " << (unsigned int) BPB_SecPerClus << "\n";
+  std::cerr << "BPB_NumFATs = " << (unsigned int) BPB_NumFATs << ", BPB_FATSz16 = " << (unsigned int) BPB_FATSz16 << "\n";
+  std::cerr << "BPB_RsvdSecCnt = " << (unsigned int) BPB_RsvdSecCnt << ", BPB_RootEntCnt = " << (unsigned int) BPB_RootEntCnt << "\n";
+  std::cerr << "FirstSectorofCluster1 = " << (unsigned int) FirstSectorofCluster1 << ", FirstSectorofCluster2 = " << (unsigned int) FirstSectorofCluster2 << "\n";
+  std::cerr << "\n";
+  std::cerr << "firstBpbSector = " << (unsigned int) firstBpbSector << ", numBpbSectors = " << (unsigned int) numBpbSectors << "\n";
+  std::cerr << "firstRootSector = " << (unsigned int) firstRootSector << ", numRootSectors = " << (unsigned int) numRootSectors << "\n";
+  std::cerr << "firstFatSector = " << (unsigned int) firstFatSector << ", numFatSectors = " << (unsigned int) numFatSectors << "\n";
+  std::cerr << "firstDataSector = " << (unsigned int) firstDataSector << ", numDataSectors = " << (unsigned int) numDataSectors << "\n";
+  std::cerr << endl;
 }
 
 void FatFileSystem::readFAT()
@@ -98,7 +106,7 @@ void FatFileSystem::readFAT()
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
-  int size = BPB_NumFATs * BPB_FATSz16 * BPB_BytsPerSec;
+  int size = numFatSectors * bytesPerSector;
 
   FAT = new uint16_t[size];
   status = tm->requestFileRead(mountFD, FAT, &size);
@@ -119,7 +127,7 @@ void FatFileSystem::readRoot()
   ThreadManager* tm = ThreadManager::get();
   TVMStatus status;
 
-  int size = numRootSectors * BPB_BytsPerSec;
+  int size = numRootSectors * bytesPerSector;
 
   RootDir = new uint8_t[size];
   status = tm->requestFileRead(mountFD, RootDir, &size);
@@ -174,7 +182,7 @@ void FatFileSystem::readRoot()
 
 void FatFileSystem::parseRoot() const
 {
-  SVMDirectoryEntry *directory = new SVMDirectoryEntry[BPB_RootEntCnt];
+  SVMDirectoryEntry *directory = new SVMDirectoryEntry[numRootEntries];
 
   int dirent_count = 0;
   int long_entry_n;
@@ -182,7 +190,7 @@ void FatFileSystem::parseRoot() const
   uint8_t *rootDirEntPtr;
   SVMDirectoryEntry *dirEntRef;
 
-  for (int i = 0; i < BPB_RootEntCnt; i++) {
+  for (unsigned i = 0; i < numRootEntries; i++) {
     rootDirEntPtr = RootDir + i * 32;
     dirEntRef = directory + dirent_count;
 
@@ -244,8 +252,8 @@ bool FatFileSystem::seekSector(int base, int offset)
 
   int newoffset;
 
-  offset *= BPB_BytsPerSec;
-  base *= BPB_BytsPerSec;
+  offset *= bytesPerSector;
+  base *= bytesPerSector;
 
   cerr << "seekSector called with offset * BPB_BytsPerSec = " << offset << ", base * BPB_BytsPerSec = " << base << "\n" << flush;
 
@@ -266,8 +274,8 @@ bool FatFileSystem::seekCluster(int base, int offset)
 
   int newoffset;
 
-  offset *= BPB_BytsPerSec * BPB_SecPerClus;
-  base *= BPB_BytsPerSec * BPB_SecPerClus;
+  offset *= bytesPerSector * sectorsPerCluster;
+  base *= bytesPerSector * sectorsPerCluster;
   status = tm->requestFileSeek(mountFD, offset, base, &newoffset);
 
   if (newoffset == offset + base)

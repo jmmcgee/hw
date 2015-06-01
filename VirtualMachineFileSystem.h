@@ -10,12 +10,10 @@ class FatFileSystem
   private:
     int mountFD;
 
-    uint16_t  BPB_BytsPerSec;
-    uint8_t   BPB_SecPerClus;
-    uint16_t  BPB_RsvdSecCnt;
-    uint8_t   BPB_NumFATs;
-    uint16_t  BPB_RootEntCnt;
-    uint16_t  BPB_FATSz16;
+    unsigned int bytesPerSector;
+    unsigned int sectorsPerCluster;
+    unsigned int numFats;
+    unsigned int numRootEntries;
 
     unsigned int firstBpbSector;
     unsigned int numBpbSectors;
@@ -34,7 +32,6 @@ class FatFileSystem
     unsigned int FirstDataSector;
     unsigned int FirstSectorofCluster1;
     unsigned int FirstSectorofCluster2;
-
 
     uint16_t *FAT;
     uint8_t *RootDir;
