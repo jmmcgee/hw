@@ -18,22 +18,22 @@
  * Following are list of API's which need to be defined in this file.
  *
  */
+#include "UsbDeviceCdcCom.h"
 
 /**
  * Includes
  */
 
-#include <mfs.h>
-//#include "UsbDeviceCdcCom.h"
+#include "rsi_global.h"
 #include <rsi_global.h>
 #include <rsi_app.h>
+#include "mfs.h"
 #include <exint.h>
 #include <gpio.h>
 #include <rsi_api.h>
-#include <rsi_bt_app.h>
 
 
-#define  RSI_SPI_INTR_NBR     8
+#define  RSI_SPI_INTR_NBR     7
 
 /*===================================================*/
 /**
@@ -46,14 +46,16 @@
  */
 
 uint32_t  irq_count;
-//extern    rsi_app_cb_t  rsi_app_cb;
+extern    rsi_app_cb_t  rsi_app_cb;
 void  Intr_isr (void)
 {
 	Exint_DisableChannel(RSI_SPI_INTR_NBR);
 	irq_count++;
-	//rsi_app_cb.pkt_pending = RSI_TRUE;
-	rsi_bt_AppControlBlock.PacketPending = RSI_TRUE;
+	rsi_app_cb.pkt_pending = RSI_TRUE;
+//	UsbDeviceCdcCom_SendDec("IN ISR");
+	//UsbDeviceCdcCom_SendString("\r\n");
 
+	//TODO:
 
 	return;
 }
@@ -69,21 +71,21 @@ void  Intr_isr (void)
  */
 void rsi_irq_start(void)
 {
-		extern stc_exint_config_t pstcConfig;
+		stc_exint_config_t stcExtIntConfig;
 
-  //PDL_ZERO_STRUCT(pstcConfig);
+  PDL_ZERO_STRUCT(stcExtIntConfig);
 
-  pstcConfig.abEnable[RSI_SPI_INTR_NBR] = TRUE;
-  pstcConfig.aenLevel[RSI_SPI_INTR_NBR] = ExIntHighLevel;
-  pstcConfig.apfnExintCallback[RSI_SPI_INTR_NBR] = &Intr_isr; 
+  stcExtIntConfig.abEnable[RSI_SPI_INTR_NBR] = TRUE;   // INT7
+  stcExtIntConfig.aenLevel[RSI_SPI_INTR_NBR] = ExIntHighLevel;  //ExIntFallingEdge;
+  stcExtIntConfig.apfnExintCallback[RSI_SPI_INTR_NBR] = &Intr_isr;
 
 
   // Set pin function before enabling external interrupt channel!
+//  SetPinFunc_INT14_1(0u); 	        // Pin Function: INT14_1 // previous interrupt line
+  //SetPinFunc_INT07_1(dummy);
+	SetPinFunc_MADATA07_0(0u);
 
-	SetPinFunc_INT08_1(0u); 
-	
-
-  Exint_Init(&pstcConfig);
+  Exint_Init(&stcExtIntConfig);
   Exint_EnableChannel(RSI_SPI_INTR_NBR);
 
 	return;

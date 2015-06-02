@@ -45,12 +45,8 @@
 #define ENABLE              1u						// Enable
 #define DISABLE             0u						// Disable
 
-#ifndef TRUE
 #define TRUE				1u						// True
-#endif
-#ifndef FALSE
 #define FALSE				0u						// False
-#endif
 
 
 /*
@@ -60,10 +56,9 @@
 */
 
 #define	ERR_NONE            			0u			// NO Error
-#define ERR_UNKNOWN         			1u			// Undefined Error occured
-#define ERR_INVALID_PARMS				  2u			// Invalid function parameters
+#define ERR_UNKNOWN         			1u			// Undefined Error occurred
+#define ERR_INVALID_PARMS				2u			// Invalid function parameters
 #define ERR_BUFFER_OVERFLOW 			3u			// Buffer Over Flow
-#define ERR_UNINITIALIZED				  4u
 
 /*
 *********************************************************************************************************
@@ -83,11 +78,11 @@ typedef short               int16;
 
 typedef long                int32;
 
-typedef char      			    bool_t;
+typedef char      			bool_t;
 
 typedef unsigned short      err_t;
 
-
+extern volatile uint8 fflag;
 /*
 *********************************************************************************************************
 *                                           END

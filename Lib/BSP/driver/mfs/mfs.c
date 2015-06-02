@@ -2504,9 +2504,7 @@ en_result_t Mfs_I2c_Init(volatile stc_mfsn_t*        pstcI2c,
     uint8_t                   u8NFCR  = 0u;
 
     /* Parameter check and get ptr to internal data struct */
-    if ((NULL == MfsGetInternDataPtr(pstcI2c))
-    ||  (NULL == pstcConfig)
-       )
+    if ((NULL == MfsGetInternDataPtr(pstcI2c)) ||  (NULL == pstcConfig))
     {
         return (ErrorInvalidParameter);
     }

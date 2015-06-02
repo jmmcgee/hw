@@ -43,18 +43,37 @@
  * @section prerequisite 
  * The rsi_ipparam_set  should be done sussessfully.
  */
- 
 int16 rsi_http_get(rsi_uHttpReq *uHttpGetReqFrame)
 {
   int16  retval;
   uint16 buf_len;
+  uint16 ii =0;
+  uint8 count =0;
 
   /*Http GET Request Frame */
   uint8   rsi_frameCmdHttpGetReq[RSI_BYTES_3] = {0x00, 0x40, 0x51};
 
   buf_len = sizeof(rsi_uHttpReq) - HTTP_BUFFER_LEN;
 
-  buf_len += strlen((char *)uHttpGetReqFrame->HttpReqFrameSnd.buffer);
+  if((*(uint16 *)uHttpGetReqFrame->HttpReqFrameSnd.https_enable) & 2)
+  {
+    while(count != 6)
+    {
+      if(uHttpGetReqFrame->HttpReqFrameSnd.buffer[ii++] == '\0')
+      {
+        count++;
+
+      }
+      buf_len++;
+    }
+    buf_len--; // Not considering NULL at the end of the buffer
+  }
+  else
+  {
+    buf_len += strlen((char *)uHttpGetReqFrame->HttpReqFrameSnd.buffer);
+
+  }
+  //buf_len += 57+88+16;//strlen((char *)uHttpGetReqFrame->HttpReqFrameSnd.buffer);
 
   *(uint16 *)&rsi_frameCmdHttpGetReq[0] = (buf_len & 0xFFF);
 

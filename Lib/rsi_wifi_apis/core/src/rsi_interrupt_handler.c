@@ -24,7 +24,6 @@
  */
 #include "rsi_global.h"
 #include "rsi_app.h"
-#include "rsi_bt_app.h"
 
 
 /**
@@ -53,8 +52,7 @@
 
 void rsi_interrupt_handler(void)
 {
-  //rsi_app_cb.pkt_pending = RSI_TRUE;
-	rsi_bt_AppControlBlock.PacketPending = RSI_TRUE;
+  rsi_app_cb.pkt_pending = RSI_TRUE;
   rsi_irq_disable();
 }
 

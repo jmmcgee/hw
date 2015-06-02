@@ -55,7 +55,6 @@
 /******************************************************************************/
 /* Include files                                                              */
 /******************************************************************************/
-
 #include <base_types.h>
 #include <mcu.h>
 #include <pdl_device.h>
@@ -667,7 +666,7 @@ extern "C"
     #define BT5_IRQHandler(void)               IRQ044_Handler(void) ///< Base Timer Ch. 5
     #define BT6_IRQHandler(void)               IRQ045_Handler(void) ///< Base Timer Ch. 6
     #define BT7_IRQHandler(void)               IRQ046_Handler(void) ///< Base Timer Ch. 7
-//    #define DT1_2_IRQHandler(void)             IRQ047_Handler(void) ///< Dual Timer Ch. 1, 2
+  //  #define DT1_2_IRQHandler(void)             IRQ047_Handler(void) ///< Dual Timer Ch. 1, 2
     #define WC_IRQHandler(void)                IRQ048_Handler(void) ///< Watch Counter
     #define EXTBUS_ERR_IRQHandler(void)        IRQ049_Handler(void) ///< External Bus Error
     #define RTC_IRQHandler(void)               IRQ050_Handler(void) ///< Real Time Clock
@@ -694,8 +693,8 @@ extern "C"
     #define MFS5_TX_IRQHandler(void)           IRQ071_Handler(void) ///< Multi Function Serial Reception/Status Ch. 5
     #define MFS6_RX_IRQHandler(void)           IRQ072_Handler(void) ///< Multi Function Serial Reception Ch. 6
     #define MFS6_TX_IRQHandler(void)           IRQ073_Handler(void) ///< Multi Function Serial Reception/Status Ch. 6
-    //#define MFS7_RX_IRQHandler(void)           IRQ074_Handler(void) ///< Multi Function Serial Reception Ch. 7
-    //#define MFS7_TX_IRQHandler(void)           IRQ075_Handler(void) ///< Multi Function Serial Reception/Status Ch. 7
+   // #define MFS7_RX_IRQHandler(void)           IRQ074_Handler(void) ///< Multi Function Serial Reception Ch. 7
+   // #define MFS7_TX_IRQHandler(void)           IRQ075_Handler(void) ///< Multi Function Serial Reception/Status Ch. 7
     #define ADC0_IRQHandler(void)              IRQ076_Handler(void) ///< Analog Digital Converter Unit 0
     #define ADC1_IRQHandler(void)              IRQ077_Handler(void) ///< Analog Digital Converter Unit 1
     #define USB0_IRQHandler(void)              IRQ078_Handler(void) ///< USB Ch. 0 (DRQ of endpoint 1 to 5) 

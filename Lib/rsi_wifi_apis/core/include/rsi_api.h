@@ -486,6 +486,9 @@ extern "C"{
 #define RSI_SSL_TLS_V_1                  BIT(2)
 #define RSI_SSL_TLS_V_1_2                BIT(3)
 
+//! HTTP Feature
+#define RSI_HTTP_NULL_DELIMITER          BIT(1)
+
 
 //!PMK
 #define RSI_PSK_FROM_HOST               1
@@ -677,7 +680,7 @@ int16 rsi_set_region(rsi_usetregion *uSetRegionReqFrame);
 int16 rsi_set_region_ap(rsi_usetregion_ap_t *uSetRegionApReqFrame);
 int16 rsi_send_websocket_data(uint16 socketDescriptor, uint8 *payload, uint32 payloadLen,uint8 protocol, uint8 opcode, uint32 *total_bytes_sent);
 int16 rsi_user_store_config(rsi_user_store_config_t  *ptr_userstrcfg);
-void rsi_buildHttpExtendedHeader(uint8 *http_header);
+void rsi_buildHttpExtendedHeader(uint8 *http_header,uint8 delimiter_mode);
 int16 rsi_bytes_sent_count(uint16 socketDescriptor);
 
 #ifdef __cplusplus

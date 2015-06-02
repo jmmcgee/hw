@@ -137,7 +137,7 @@
 #define PDL_PERIPHERAL_ENABLE_EXINT4            PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_EXINT5            PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_EXINT6            PDL_OFF
-#define PDL_PERIPHERAL_ENABLE_EXINT7            PDL_ON   
+#define PDL_PERIPHERAL_ENABLE_EXINT7            PDL_OFF   
 #define PDL_PERIPHERAL_ENABLE_EXINT8            PDL_ON
 #define PDL_PERIPHERAL_ENABLE_EXINT9            PDL_OFF
 #define PDL_PERIPHERAL_ENABLE_EXINT10           PDL_OFF
@@ -566,7 +566,7 @@
 #define PDL_IRQ_LEVEL_EXINT5            15u
 #define PDL_IRQ_LEVEL_EXINT6            15u
 #define PDL_IRQ_LEVEL_EXINT7            15u
-#define PDL_IRQ_LEVEL_EXINT8            15u
+#define PDL_IRQ_LEVEL_EXINT8            14u
 #define PDL_IRQ_LEVEL_EXINT9            15u
 #define PDL_IRQ_LEVEL_EXINT10           15u
 #define PDL_IRQ_LEVEL_EXINT11           15u

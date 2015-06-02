@@ -42,7 +42,7 @@
 
 #include <pdl.h>
 #include <system_mb9abxxx.h>
-/** file system_mb9abxxx.c
+/** \file system_mb9abxxx.c
  **
  ** FM4 system initialization functions
  ** All adjustments can be done in belonging header file.

@@ -24,7 +24,6 @@
 #include "core_cm4.h"
 
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +38,6 @@ void sys_ticks_init( void )
   if (SysTick_Config(SystemCoreClock / 1000))
   {
     // Capture error
-
     while (true);
   }
 

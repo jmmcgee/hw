@@ -62,7 +62,7 @@
 #define RSI_STORE_CONFIG           DISABLE                     //@ ENABLE or DISABLE store configuration
 
 #define RSI_WIFI_OPER_MODE             0                       //@ 0-For legacy client , 1-P2p mode , 2-Enterprise security mode, 6- AP mode, 8-per mode 
-#define RSI_COEX_MODE                  5                       //@ 0-wlan only, 3- wlan+zigbee coex 5- wlan+bt coex  13- wlan+btle coex
+#define RSI_COEX_MODE                  0                       //@ 0-wlan only, 3- wlan+zigbee coex 5- wlan+bt coex  13- wlan+btle coex
 #define RSI_OPERMODE               (RSI_WIFI_OPER_MODE | ( RSI_COEX_MODE << 16))            
 #define RSI_FEATURE_BIT_MAP        FEAT_SECURITY_OPEN          //@ To set wlan feature select bit map
 #define RSI_TCP_IP_FEATURE_BIT_MAP (TCP_IP_FEAT_DHCPV4_CLIENT | TCP_IP_FEAT_HTTP_SERVER | TCP_IP_FEAT_SSL)

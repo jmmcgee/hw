@@ -50,13 +50,30 @@ int16 rsi_http_post(rsi_uHttpReq *uHttpPostReqFrame)
 {
   int16  retval;
   uint16 buf_len = 0;
-
+  uint16 count = 0,ii=0;
   /*Http Post Request Frame */
   uint8   rsi_frameCmdHttpPostReq[RSI_BYTES_3] = {0x00, 0x40, 0x52};
 
   buf_len = sizeof(rsi_uHttpReq) - HTTP_BUFFER_LEN;
 
-  buf_len += strlen((char *)uHttpPostReqFrame->HttpReqFrameSnd.buffer);
+  if((*(uint16 *)uHttpPostReqFrame->HttpReqFrameSnd.https_enable) & 2)
+  {
+    while(count != 7)
+    {
+      if(uHttpPostReqFrame->HttpReqFrameSnd.buffer[ii++] == '\0')
+      {
+        count++;
+
+      }
+      buf_len++;
+    }
+    buf_len--; // Not considering NULL at the end of the buffer
+  }
+  else
+  {
+    buf_len += strlen((char *)uHttpPostReqFrame->HttpReqFrameSnd.buffer);
+
+  }
 
   *(uint16 *)&rsi_frameCmdHttpPostReq[0] = (buf_len & 0xFFF);
 

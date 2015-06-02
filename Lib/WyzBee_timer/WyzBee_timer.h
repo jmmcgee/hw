@@ -31,9 +31,6 @@
 #ifndef  WyzBee_TIMER_H
 #define  WyzBee_TIMER_H
 
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 /*
 *********************************************************************************************************
@@ -142,8 +139,5 @@ err_t WyzBeeDualTimer_Attach_Callback(timer_callback cb_Fn, uint8_t ch_num);
 *********************************************************************************************************
 */
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // WyzBee_TIMER__H

@@ -365,6 +365,21 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y,
   }
 }
 
+void Adafruit_GFX::writeString(const char *str, uint16_t color){
+	int i =0;
+	setTextColor(color);
+	while(str[i] != '\0'){
+		write(str[i]);
+		i++;
+	}
+		
+}
+
+void Adafruit_GFX::writeString(const char *str){
+	writeString(str, WHITE); //set textColor to be WHITE by default
+}
+
+
 #if ARDUINO >= 100
 size_t Adafruit_GFX::write(uint8_t c) {
 #else

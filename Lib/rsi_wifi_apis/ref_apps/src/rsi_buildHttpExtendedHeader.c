@@ -23,6 +23,7 @@
  * Includes
  */
 #include "rsi_global.h"
+#include "WyzBee.h"
 #include <string.h>
 
 /*==============================================*/
@@ -36,12 +37,28 @@
   * To build the user configurable http header.user can add http header fields.
  */
 
-void rsi_buildHttpExtendedHeader(uint8 *http_header)
+void rsi_buildHttpExtendedHeader(uint8 *http_header,uint8 delimiter_mode)
 {
-
-  strcat((char *)http_header ,"User-Agent: curl/7.30.0\r\n");
-  strcat((char *)http_header ,"Accept: */*\r\n");
-  strcat((char *)http_header ,"Content-Type: application/x-www-form-urlencoded\r\n");
+	
+	if(delimiter_mode)
+	{
+		strcpy((char *)http_header ,"User-Agent: HTMLPOST 1.00\r\n");
+	}
+	else
+	{
+		strcat((char *)http_header ,"User-Agent: HTMLPOST 1.00\r\n");
+	}
+	strcat((char *)http_header ,"X-Exosite-CIK: 7cc31bc057dcdef0e81a079fda230f45ce7c11d6\r\n");
+	  
+		switch(fflag)
+		{
+			case 0:
+				strcat((char *)http_header ,"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n");
+				break;
+			case 1:
+				strcat((char *)http_header ,"Accept: application/x-www-form-urlencoded; charset=utf-8\r\n");
+				break;
+		}
 
 }
 

@@ -33,7 +33,9 @@
 *********************************************************************************************************
 */
 
-
+#ifdef __cplusplus
+extern "C"{
+#endif
 #include  <WyzBee_timer.h>
 
 
@@ -155,9 +157,9 @@ err_t WyzBeeDualTimer_LoadTime(uint32_t time, uint8_t ch_num)
 {
 
 	     err_t err;
-	     //float32_t count_Internal,t1,t2;
+	     float32_t count_Internal,t1,t2;
 
-   	 	 //count_Internal = time;
+   	 	 count_Internal = time;
    	 											//														    /*  Write load value for given channel	*/
 	     err = Dt_WriteLoadVal(time, ch_num);
 	     if(err == Ok) return ERR_NONE;
@@ -204,3 +206,6 @@ err_t WyzBeeDualTimer_Attach_Callback(timer_callback cb_Fn, uint8_t ch_num)
 	     else return ERR_INVALID_PARMS;
 }
 
+#ifdef __cplusplus
+}
+#endif

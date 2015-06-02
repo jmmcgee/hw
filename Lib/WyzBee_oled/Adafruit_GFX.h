@@ -68,8 +68,26 @@ class Adafruit_GFX  {
     setTextColor(uint16_t c, uint16_t bg),
     setTextSize(uint8_t s),
     setTextWrap(boolean w),
-    setRotation(uint8_t r);
+    setRotation(uint8_t r),
+		writeString(const char *str, uint16_t color),
+		writeString(const char *str);
 
+uint16_t getCursorX(){
+	return cursor_x;
+}
+
+uint16_t getCursorY(){
+	return cursor_y;
+}
+
+uint8_t getTextSize(){
+	return textsize;
+}
+
+uint16_t getBgColor(){
+	return textbgcolor;
+}
+		
 #if ARDUINO >= 100
   virtual size_t write(uint8_t);
 #else

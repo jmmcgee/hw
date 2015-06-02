@@ -30,7 +30,6 @@
 #include <exint.h>
 #include <gpio.h>
 #include <rsi_api.h>
-#include <rsi_bt_app.h>
 
 
 #define  RSI_SPI_INTR_NBR     8
@@ -46,13 +45,12 @@
  */
 
 uint32_t  irq_count;
-//extern    rsi_app_cb_t  rsi_app_cb;
+extern    rsi_app_cb_t  rsi_app_cb;
 void  Intr_isr (void)
 {
 	Exint_DisableChannel(RSI_SPI_INTR_NBR);
 	irq_count++;
-	//rsi_app_cb.pkt_pending = RSI_TRUE;
-	rsi_bt_AppControlBlock.PacketPending = RSI_TRUE;
+	rsi_app_cb.pkt_pending = RSI_TRUE;
 
 
 	return;

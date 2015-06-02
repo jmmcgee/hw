@@ -75,26 +75,6 @@ void Adafruit_SSD1351::writeData(uint8_t c)
 	spiwrite(c);
 }
 
-void Adafruit_SSD1351::writeString(char *buf, uint32_t len)
-{
-  for(int i = 0; i < len; i++){
-    if(buf[i] == '\n')
-      this->setCursor(0, (getCursorY()+8*textsize)%128);
-    else
-      this->write(buf[i]);
-  }
-}
-
-uint16_t Adafruit_SSD1351::getCursorX()
-{
-  return cursor_x;
-}
-
-uint16_t Adafruit_SSD1351::getCursorY()
-{
-  return cursor_y;
-}
-
 /***********************************/
 
 void Adafruit_SSD1351::goTo(int x, int y) {

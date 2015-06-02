@@ -61,6 +61,8 @@ int16 rsi_init_struct(rsi_api *ptrStrApi)
 {
   uint16 i,j;
   uint8 temp[20];
+	uint32 http_len = 0;
+  uint8 http_feature = 0;
   /* Module Parameters */
 
   /* Band Parameters */
@@ -516,7 +518,9 @@ int16 rsi_init_struct(rsi_api *ptrStrApi)
 	strcpy((char *)ptrStrApi->uconfigP2p.configP2pFrameSnd.ssidPostFix, POST_FIX_SSID);
 	strcpy((char *)ptrStrApi->uconfigP2p.configP2pFrameSnd.psk, RSI_PSK);
 	
-	/*HTTP get */
+
+	
+	/*http get */
 #ifdef RSI_LITTLE_ENDIAN
   *(uint16 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.ip_version = RSI_IP_VERSION;
   *(uint16 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.https_enable  = RSI_HTTPS_SUPPORT;
@@ -527,57 +531,127 @@ int16 rsi_init_struct(rsi_api *ptrStrApi)
 #endif
 
 
-  strcpy((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_PASSWORD);
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_HOSTNAME);
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
-  if(*(uint16 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
+  http_feature = RSI_HTTPS_SUPPORT;
+  if(!(http_feature & RSI_HTTP_NULL_DELIMITER))
   {
-    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_IP);
-  }else{
-    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_IPV6);
-  }
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_URL);
-  strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
-	
-  //rsi_buildHttpExtendedHeader(ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer);  // mallikarjuna 
-  
+    strcpy((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_PASSWORD);
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_HOSTNAME);
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
+    if(*(uint16 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
+    {
+      strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_IP);
+    }else{
+      strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_IPV6);
+    }
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_URL);
+    strcat((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, ",");
+    rsi_buildHttpExtendedHeader((uint8 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, 0);
 
-  /* URL to be configured */
 
-  /*HTTP post*/
-#ifdef RSI_LITTLE_ENDIAN 
-  *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version = RSI_IP_VERSION;
-  *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable  = RSI_HTTPS_SUPPORT;
-  ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port           = RSI_HTTP_SERVER_PORT;
+    /* URL to be configured */
+
+    /*HTTP post*/
+#ifdef RSI_LITTLE_ENDIAN
+    *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version = RSI_IP_VERSION;
+    *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable  = RSI_HTTPS_SUPPORT;
+    ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port           = RSI_HTTP_SERVER_PORT;
 #else
-  rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version,RSI_IP_VERSION);
-  rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable, RSI_HTTPS_SUPPORT);
-  rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port, RSI_HTTP_SERVER_PORT);
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version,RSI_IP_VERSION);
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable, RSI_HTTPS_SUPPORT);
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port, RSI_HTTP_SERVER_PORT);
+#endif
+
+
+    strcpy((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_PASSWORD);
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_HOSTNAME);
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    if(*(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
+    {
+      strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_IP);
+    }else {
+      strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_IPV6);
+    }
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_URL);
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    rsi_buildHttpExtendedHeader((uint8 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, 0);
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
+    strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_DATA);
+  }
+  else
+  {
+    strcpy((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
+    http_len = sizeof(RSI_HTTP_USERNAME);
+
+    strcpy(((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_PASSWORD);
+    http_len += sizeof(RSI_HTTP_PASSWORD);
+
+    strcpy(((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_HOSTNAME);
+    http_len += sizeof(RSI_HTTP_HOSTNAME);
+
+    if(*(uint16 *)ptrStrApi->uHttpGetReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
+    {
+      strcpy(((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_IP);
+      http_len += sizeof(RSI_HTTP_IP);
+    }else{
+      strcpy(((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_IPV6);
+      http_len += sizeof(RSI_HTTP_IPV6);
+    }
+    strcpy(((char *)&ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_URL);
+    http_len += sizeof(RSI_HTTP_URL);
+
+    rsi_buildHttpExtendedHeader((uint8 *)&(ptrStrApi->uHttpGetReq.HttpReqFrameSnd.buffer) + http_len, 1);
+
+    /* URL to be configured */
+
+    /*HTTP post*/
+#ifdef RSI_LITTLE_ENDIAN 
+    *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version = RSI_IP_VERSION;
+    *(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable  = RSI_HTTPS_SUPPORT;
+    ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port           = RSI_HTTP_SERVER_PORT;
+#else
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version,RSI_IP_VERSION);
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.https_enable, RSI_HTTPS_SUPPORT);
+    rsi_uint16_to_2bytes(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.http_port, RSI_HTTP_SERVER_PORT);
 #endif 
 
 
-  strcpy((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_PASSWORD);
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_HOSTNAME);
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  if(*(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
-  {
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_IP);
-  }else {
-   strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_IPV6);
+    strcpy((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_USERNAME);
+    http_len = sizeof(RSI_HTTP_USERNAME);
+
+    strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_PASSWORD);
+    http_len += sizeof(RSI_HTTP_PASSWORD);
+
+    strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_HOSTNAME);
+    http_len += sizeof(RSI_HTTP_HOSTNAME);
+
+    if(*(uint16 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.ip_version == IP_VERSION_4)
+    {
+      strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_IP);
+      http_len += sizeof(RSI_HTTP_IP);
+    }else {
+      strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_IPV6);
+      http_len += sizeof(RSI_HTTP_IPV6);
+    }
+    strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_URL);
+    http_len += sizeof(RSI_HTTP_URL);
+
+    rsi_buildHttpExtendedHeader((uint8 *)ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer + http_len, 1);
+
+    http_len += strlen((char *)&(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len) + 1;
+    strcpy(((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer) + http_len, RSI_HTTP_DATA);
   }
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_URL);
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  //rsi_buildHttpExtendedHeader(ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer);  //mallikarjuna
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, ",");
-  strcat((char *)&ptrStrApi->uHttpPostReq.HttpReqFrameSnd.buffer, RSI_HTTP_DATA);
+
+
+
+
 
   
   /* Dns server Params*/

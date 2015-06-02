@@ -22,7 +22,6 @@
 #include <spi.h>
 #include "rsi_global.h"
 #include <rsi_api.h>
-#include <rsi_bt_api.h>
 
 
 
@@ -30,10 +29,10 @@ int conn_status      =0;
 int conn_status_dhcp =0;
 int static_config    =0;
 
-//NetWrk_Parms              nw_parms;
-//rsi_app_cb_t              rsi_app_cb;				              		 //@  structure variable to the rsi_app_cb_t.
+NetWrk_Parms              nw_parms;
+rsi_app_cb_t              rsi_app_cb;				              		 //@  structure variable to the rsi_app_cb_t.
 rsi_api                  *ptrStrApi = &rsi_app_cb.rsi_strApi;   //@ ponter to the rsi_api structure.
-//rsi_scanResponse          ScanResp; //  structure variable for the rsi_scanResponse
+rsi_scanResponse          ScanResp; //  structure variable for the rsi_scanResponse
 
 
 
@@ -51,22 +50,17 @@ rsi_api                  *ptrStrApi = &rsi_app_cb.rsi_strApi;   //@ ponter to th
  */
 int16  WyzBeeWiFi_Init()
 {
-	int16  retval;
+	int16 retval;
 	uint16 response_type = 0;
-	uint8  wificonf_done = 0;
-	
-	
-	
+	uint8 wificonf_done = 0;
 	WyzBee_spi_init();
-	retval = rsi_sys_init();
-	
+	retval=rsi_sys_init();
 	if(retval==0)
 	{
 		rsi_waitfor_boardready();
 		rsi_select_option(RSI_HOST_BOOTUP_OPTION);
 		rsi_init_struct(&rsi_app_cb.rsi_strApi);
 		rsi_irq_start();
-		
 		while (1)
 		{
 			if ( rsi_app_cb.pkt_pending == RSI_TRUE )
@@ -97,9 +91,7 @@ int16  WyzBeeWiFi_Init()
 							/*If opermode command response is success */
 							if (!rsi_app_cb.error_code)
 							{
-								/* Wifi operation mode response sucess. */
-								return 0;
-								//retval = rsi_query_fw_version();
+								retval = rsi_query_fw_version();
 							}
 							/*If opermode command fails */
 							else
@@ -107,24 +99,13 @@ int16  WyzBeeWiFi_Init()
 								return -1;
 							}
 							break;
-							
-						case RSI_BT_RSP_CARD_READY:
-							   FM4_GPIO->PDOR4_f.P42 = 0u;				//@ P42	  LOW
-     				 		 FM4_GPIO->PDOR4_f.P43 = 0u;				//@ P43   LOW
-			     		   FM4_GPIO->PDOR4_f.P44 = 0u;				//@ P44   LOW
-						     retval = rsi_query_fw_version();
-							   break;
 
 						case RSI_RSP_FWVERSION_QUERY:
 							/*If Firmware Version query command is success */
 							if (!rsi_app_cb.error_code)
 							{
 								/* False: Proceed with band */
-								//retval = rsi_band(rsi_app_cb.rsi_strApi.band); //mallikarjuna
-								
-								
-								/* bt init sucess at firmware. */
-									return 0;
+								retval = rsi_band(rsi_app_cb.rsi_strApi.band);
 							}
 							/*If Firmware Version query command if fail*/
 							else
@@ -133,7 +114,7 @@ int16  WyzBeeWiFi_Init()
 							}
 							break;
 
-#if 0
+
 						case RSI_RSP_BAND:
 							/*If Band command response is success */
 							if (!rsi_app_cb.error_code)
@@ -163,7 +144,6 @@ int16  WyzBeeWiFi_Init()
 								return -1;
 							}
 							break;
-#endif
 						default:
 							break;
 
@@ -239,7 +219,6 @@ int16  WyzBeeWiFi_FirmwareVersion(int8 * fw_ver)
  *              	 0 = SUCCESS
  * @description : This function is used to connect with access point in WPA/WPA2 mode, and on successful connection it fills the network parameters in "nw_parms" global structure.
  */
-/*
 int16  WyzBeeWiFi_ConnectAccessPoint (int8* ssid, const int8 *passphrase)
 {
 	uint16 retval;
@@ -306,7 +285,7 @@ int16  WyzBeeWiFi_ConnectAccessPoint (int8* ssid, const int8 *passphrase)
 	}
 	return Status;
 }
-*/
+
 
 /*===================================================*/
 /**
@@ -370,8 +349,6 @@ int16  WyzBeeWiFi_config(int8* local_ip, int8* dns_server, int8* gateway, int8* 
  *                0 = SUCCESS
  * @description : This function sets the Primary and secondary IP address of the module.
  */
-
-/*
 int16 WyzBeeWiFi_setDNS(int8* dns_server1, int8* dns_server2)
 {
 	uint16 retval;
@@ -400,7 +377,6 @@ int16 WyzBeeWiFi_setDNS(int8* dns_server1, int8* dns_server2)
 	}
 	return Status;
 }
-*/
 
 /*===================================================*/
 /**
@@ -412,7 +388,7 @@ int16 WyzBeeWiFi_setDNS(int8* dns_server1, int8* dns_server2)
  * @return			: 0 success 
  * @description : This function is used to disconnect form the AP
  */
-/*int16 WyzBeeWiFi_disconnect(void)
+int16 WyzBeeWiFi_disconnect(void)
 {
 	uint16 retval;
 	uint8 Respone_Type;
@@ -434,7 +410,7 @@ int16 WyzBeeWiFi_setDNS(int8* dns_server1, int8* dns_server2)
 	}
 	
 	return retval;
-}*/
+}
 
 /*===================================================*/
 /**
@@ -449,8 +425,6 @@ int16 WyzBeeWiFi_setDNS(int8* dns_server1, int8* dns_server2)
  *               	 0 = SUCCESS
  * @description : This function will provide the RS9113 module's MAC address by executing the RSI command
  */
-
-/*
 int16 WyzBeeWiFi_macAddress(int8* mac)
 {
 	uint16 retval;
@@ -471,7 +445,6 @@ int16 WyzBeeWiFi_macAddress(int8* mac)
 	}
 	return Status;
 }
-*/
 
 /*===================================================*/
 /**
@@ -486,7 +459,6 @@ int16 WyzBeeWiFi_macAddress(int8* mac)
  *              	 0 = SUCCESS
  * @description : This function is get the module local IP address when it is connected to the AP
  */
-/*
 int16 WyzBeeWiFi_localIP(uint8* ip)
 {
 	uint16 retval;
@@ -512,7 +484,7 @@ int16 WyzBeeWiFi_localIP(uint8* ip)
 		}
 	}
 	return Status;
-}*/
+}
 
 /*===================================================*/
 /**
@@ -527,8 +499,6 @@ int16 WyzBeeWiFi_localIP(uint8* ip)
  *              	0  = SUCCESS
  * @description : This function returns the connected AP subnet
  */
- 
- /*
 int16 WyzBeeWiFi_subnetMask(uint8* subnet)
 {
 	uint16 retval;
@@ -555,7 +525,6 @@ int16 WyzBeeWiFi_subnetMask(uint8* subnet)
 	}
 	return Status;
 }
-*/
 
 //===================================================*/
 /**
@@ -570,8 +539,6 @@ int16 WyzBeeWiFi_subnetMask(uint8* subnet)
  *              	 0 = SUCCESS
  * @description : This function returns the connected AP IP
  */
- 
- /*
 int16 WyzBeeWiFi_gatewayIP(uint8* gateway)
 {
 	uint16 retval;
@@ -599,7 +566,6 @@ int16 WyzBeeWiFi_gatewayIP(uint8* gateway)
 	}
 	return Status;
 }
-*/
 
 /*===================================================*/
 /**
@@ -616,7 +582,6 @@ int16 WyzBeeWiFi_gatewayIP(uint8* gateway)
  *	          
  */
 
-/*
 int8* WyzBeeWiFi_SSID()
 {
 	uint16 retval;
@@ -638,7 +603,7 @@ int8* WyzBeeWiFi_SSID()
 	
 	return NULL;
 }
-*/
+
 /*===================================================*/
 /**
  * @fn					: int16  WyzBeeWiFi_BSSID(uint8* bssid)
@@ -653,7 +618,7 @@ int8* WyzBeeWiFi_SSID()
  * @description : This function will get the MAC address(AP MACaddress) of connected AP
  */
 
-/*
+
 int16  WyzBeeWiFi_BSSID(uint8* bssid)
 {
 	uint16 retval;
@@ -684,7 +649,6 @@ int16  WyzBeeWiFi_BSSID(uint8* bssid)
 	}
 	return Status;
 }
-*/
 
 /*===================================================*/
 /**
@@ -697,7 +661,7 @@ int16  WyzBeeWiFi_BSSID(uint8* bssid)
  * @description : This function provide the signal strength  of AP by executing the RSIcommand
  */
 
-/*
+
 uint16 WyzBeeWiFi_RSSI(void)
 {
 	uint16 retval;
@@ -719,7 +683,6 @@ uint16 WyzBeeWiFi_RSSI(void)
 	}
 	return rssi;
 }
-*/
 
 /*===================================================*/
 /**
@@ -732,8 +695,6 @@ uint16 WyzBeeWiFi_RSSI(void)
  *                6 = Mix mode        
  * @description : This function is used to query the security type of the connected AP
  */
- 
-/*
 int8 WyzBeeWiFi_encryptionType(void)
 {
 	uint16 retval;
@@ -755,7 +716,6 @@ int8 WyzBeeWiFi_encryptionType(void)
 	}
 	return encrtypt_type;
 }
-*/
 
 /*===================================================*/
 /**
@@ -767,8 +727,6 @@ int8 WyzBeeWiFi_encryptionType(void)
  * @return			: scan count
  * @description : scans the surrounding Ap networks and return's number of scanned ap's
  */
- 
-/*
 int8_t WyzBeeWiFi_ScanNetworks(rsi_scanInfo *p_scan_resp)
 {
 	uint16 retval;
@@ -795,7 +753,7 @@ int8_t WyzBeeWiFi_ScanNetworks(rsi_scanInfo *p_scan_resp)
 	}
 	return scan_count;
 }
-*/
+
 
 /*===================================================*/
 /**
@@ -808,8 +766,6 @@ int8_t WyzBeeWiFi_ScanNetworks(rsi_scanInfo *p_scan_resp)
  *                0-disconnected
  * @description : This API returns connection status of RS9113 module with AP
  */
- 
- /*
 uint8 WyzBeeWiFi_status()
 {
 	uint16 retval;
@@ -830,7 +786,6 @@ uint8 WyzBeeWiFi_status()
 	}
 	return conn_status;
 }
-*/
 
 /*===================================================*/
 /**
@@ -845,8 +800,6 @@ uint8 WyzBeeWiFi_status()
  *                0 = SUCCESS
  * @description : This function is returns the DNS server IP of the website
  */
-
-/*
 int16 WyzBeeWiFi_hostByName(const int8* aHostname, uint8* aResult)
 {
 	uint16 retval;
@@ -870,7 +823,7 @@ int16 WyzBeeWiFi_hostByName(const int8* aHostname, uint8* aResult)
 	}
 	return Status;
 }
-*/
+
 
 /*===================================================*/
 /**
@@ -885,8 +838,6 @@ int16 WyzBeeWiFi_hostByName(const int8* aHostname, uint8* aResult)
  *              	 0 = SUCCESS
  * @description : This function is used to get the currently alloted network parameters like IP, GATEWAY, SUNETMASK
  */
-
-/*
 int16  WyzBeeWiFi_NetParms(NetWrk_Parms *ptr_net_parms)
 {
 	uint16 retval;
@@ -912,7 +863,7 @@ int16  WyzBeeWiFi_NetParms(NetWrk_Parms *ptr_net_parms)
 	}
 	return Status;
 }
-*/
+
 
 
 /*===================================================*/
@@ -929,7 +880,6 @@ int16  WyzBeeWiFi_NetParms(NetWrk_Parms *ptr_net_parms)
  *              	 0 = SUCCESS
  * @description : This function will open TCP/UDP based sockets to send data to the server
  */
-#if 0
 int16 WyzBeeWiFi_SocketOpen(uint8  mode, uint8  *p_dest_ipaddr, uint16  dest_port_nbr)
 {
 	uint16 retval;
@@ -964,7 +914,7 @@ int16 WyzBeeWiFi_SocketOpen(uint8  mode, uint8  *p_dest_ipaddr, uint16  dest_por
 	}
 	return Status;
 }
-#endif
+
 /*===================================================*/
 /**
  * @fn					: int16 WyzBeeWiFi_SocketClose(uint16  sock_desc, uint16  dest_port_nbr)
@@ -979,7 +929,6 @@ int16 WyzBeeWiFi_SocketOpen(uint8  mode, uint8  *p_dest_ipaddr, uint16  dest_por
  * @description : This function closes the particular socket , based on Socket descriptor and port number to which it was bounded.
  *
 */
-#if 0
 int16 WyzBeeWiFi_SocketClose(uint16  sock_desc, uint16  dest_port_nbr)
 {
 	uint16 retval;
@@ -1000,7 +949,6 @@ int16 WyzBeeWiFi_SocketClose(uint16  sock_desc, uint16  dest_port_nbr)
 	}
 	return Status;
 }
-#endif
 
 //===================================================*/
 /**
@@ -1015,8 +963,6 @@ int16 WyzBeeWiFi_SocketClose(uint16  sock_desc, uint16  dest_port_nbr)
  *                0 = SUCCESS
  * @description : This function is used to device firmware upgrading through wirelessly 
  */
-
-#if 0
 int16 WyzBeeWiFi_WireLesFwUpgrade()
 {
 	uint16 retval;
@@ -1043,7 +989,7 @@ int16 WyzBeeWiFi_WireLesFwUpgrade()
 	}
 	return Status;
 }
-#endif
+
 /*===================================================*/
 /**
  * @fn					: int16 WyzBee_PrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_http_url, HttpRequest  *p_http_req)
@@ -1058,14 +1004,13 @@ int16 WyzBeeWiFi_WireLesFwUpgrade()
 
  * @description :This function is used to pass the data as HHTP format for HTTP purpose
  */
-/*
+
 int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_http_url, HttpRequest  *p_http_req)
 {
 	int16  http_data_len;
 	int8   host_ip[4];
 	int8  *p_buf;
-	
-	
+
 	if ((http_buf   == NULL) ||
       (p_http_url == NULL)) {
 				
@@ -1076,8 +1021,10 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
 
 	//prepair user name
 		if (((p_http_req != NULL)) && (p_http_req->p_username != NULL)) {
-			 memcpy (http_buf + http_data_len, p_http_req->p_username, strlen((const int8 *)p_http_req->p_username));
-			 http_data_len += strlen((const int8 *)p_http_req->p_username);
+			// memcpy (http_buf + http_data_len, p_http_req->p_username, strlen((const int8 *)p_http_req->p_username));
+			// http_data_len += strlen((const int8 *)p_http_req->p_username);
+			 memcpy (http_buf + http_data_len, "user", 4);
+			 http_data_len += 4;
 		} else {
 			 memcpy (http_buf + http_data_len, "user", 4);
 			 http_data_len += 4;
@@ -1086,8 +1033,10 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
 		
 //prepair password
 		 if ((p_http_req != NULL) && (p_http_req->p_password != NULL)) {
-			 memcpy (http_buf + http_data_len, p_http_req->p_password, strlen((const int8 *)p_http_req->p_password));
-			 http_data_len += strlen((const int8 *)p_http_req->p_password);
+			 //memcpy (http_buf + http_data_len, p_http_req->p_password, strlen((const int8 *)p_http_req->p_password));
+			 //http_data_len += strlen((const int8 *)p_http_req->p_password);
+		 	 memcpy (http_buf + http_data_len, "pwd", 4);
+			 http_data_len += 3;
 		 } else {
 			 memcpy (http_buf + http_data_len, "pwd", 4);
 			 http_data_len += 3;
@@ -1107,7 +1056,7 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
 	http_data_len = strlen ((const int8 *)http_buf);
 
 //url 
-  p_buf = strtok (NULL, "/\0");   //host name
+  p_buf = strtok (NULL, "\0");   //host name
 	memcpy ((http_buf + http_data_len), p_buf, strlen((const int8 *)p_buf));
 	http_data_len += strlen((const int8 *)p_buf);	
 	http_buf [http_data_len++] = ',';		 
@@ -1117,7 +1066,7 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
 			memcpy (http_buf + http_data_len, p_http_req->p_headers, strlen((const int8 *)p_http_req->p_headers));
 			http_data_len += strlen((const int8 *)p_http_req->p_headers);	
 	} else {
-		 rsi_buildHttpExtendedHeader((uint8 *)(http_buf + http_data_len));
+		 rsi_buildHttpExtendedHeader((uint8 *)(http_buf + http_data_len),0);
 		 http_data_len = strlen ((const int8 *)http_buf);
 	}
 	http_buf [http_data_len++] = ',';
@@ -1134,7 +1083,6 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
 	
 	return http_data_len; 
 }
-*/
 
 /*===================================================*/
 /**
@@ -1149,7 +1097,7 @@ int16 WyzBeePrepairHttpData (int8  *http_buf, uint16  http_data_size, int8  *p_h
  *                0 = SUCCESS
  * @description : posts the data to the particular webserver.
  */
-/*
+
 int16 WyzBeeWiFi_HttpPost (int8  *p_http_url, HttpRequest  *p_http_req)
 {
 	uint16  retval;
@@ -1158,14 +1106,13 @@ int16 WyzBeeWiFi_HttpPost (int8  *p_http_url, HttpRequest  *p_http_req)
 	uint16  http_data_len;
 	uint16	len, len_2;
 	
-	
 	memset(&rsi_app_cb.rsi_strApi.uHttpPostReq,0,sizeof(rsi_app_cb.rsi_strApi.uHttpPostReq));
-	if (!strncmp ((const int8 *)p_http_url, "https:", 6)) {
+  if (!strncmp ((const int8 *)p_http_url, "https:", 6)) {
 	  *(uint8 *)rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.https_enable = 1;	//@ HTTPS enabled
 	} else if (!strncmp ((const int8 *)p_http_url, "http:", 5)) {
 	  *(uint8 *)rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.https_enable = 0;	//@ HTTPS disable
 	}	
-	rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.http_port=80;
+	rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.http_port=RSI_HTTP_SERVER_PORT;
 	rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.ip_version[0]=4;
 	
 	http_data_len = WyzBeePrepairHttpData ((int8 *)rsi_app_cb.rsi_strApi.uHttpPostReq.HttpReqFrameSnd.buffer,
@@ -1214,7 +1161,8 @@ int16 WyzBeeWiFi_HttpPost (int8  *p_http_url, HttpRequest  *p_http_req)
 	}
 	return Status;
 }
-*/
+
+
 
 /*===================================================*/
 /**	
@@ -1231,8 +1179,6 @@ int16 WyzBeeWiFi_HttpPost (int8  *p_http_url, HttpRequest  *p_http_req)
  *              	 0 = SUCCESS
  * @description : Gets the data from the particular web server 
  */
- 
- /*
 int16  WyzBeeWiFi_HttpGet(int8  *p_http_url, HttpRequest  *p_http_req, int8  *p_resp, uint16  resp_size)
 {
 	uint16 retval;
@@ -1241,15 +1187,11 @@ int16  WyzBeeWiFi_HttpGet(int8  *p_http_url, HttpRequest  *p_http_req, int8  *p_
 	uint16	len, len_2;
 	uint16  http_data_len;
 	
-	
-
 	memset(&rsi_app_cb.rsi_strApi.uHttpGetReq,0,sizeof(rsi_app_cb.rsi_strApi.uHttpGetReq));
-	if (!strncmp ((const int8 *)p_http_url, "https:", 6)) {
-	  *(uint8 *)rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.https_enable = 1;	//@ HTTPS enabled
-	} else if (!strncmp ((const int8 *)p_http_url, "http:", 5)) {
-	  *(uint8 *)rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.https_enable = 0;	//@ HTTPS disable
-	}	
-	rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.http_port=80;
+
+	*(uint8 *)rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.https_enable = RSI_HTTPS_SUPPORT;	
+
+	rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.http_port=RSI_HTTP_SERVER_PORT;
 	rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.ip_version[0]=4;
 	
 	http_data_len = WyzBeePrepairHttpData ((int8 *)rsi_app_cb.rsi_strApi.uHttpGetReq.HttpReqFrameSnd.buffer,
@@ -1298,7 +1240,7 @@ int16  WyzBeeWiFi_HttpGet(int8  *p_http_url, HttpRequest  *p_http_req, int8  *p_
 	}
 	return 0;
 }
-*/
+
 
 /*===================================================*/
 /**
@@ -1336,8 +1278,8 @@ void  WyzBeeWiFi_getResponse(rsi_uCmdRsp *cmd_resp)
 rsi_uCmdRsp *rsi_parse_response(uint8 *rsp)
 {
 	rsi_uCmdRsp             *temp_uCmdRspPtr = NULL;
-	uint16                   temp_rspCode;
-	uint16                   temp_status;
+	uint8                   temp_rspCode;
+	uint16                  temp_status;
 	uint8                   *descPtr = rsp ;
 	uint8                   *payloadPtr = rsp + RSI_FRAME_DESC_LEN;
 
@@ -1348,8 +1290,8 @@ rsi_uCmdRsp *rsi_parse_response(uint8 *rsp)
 
 	/* Retrieve response code from the received packet */
 #ifdef RSI_LITTLE_ENDIAN
-	temp_status  = *((uint16 *)(descPtr + RSI_STATUS_OFFSET));
-	temp_rspCode = *((uint16 *)(descPtr + RSI_RSP_TYPE_OFFSET));
+	temp_status = (*(uint16 *)(descPtr + RSI_STATUS_OFFSET));
+	temp_rspCode = *((uint8 *)(descPtr + RSI_RSP_TYPE_OFFSET));
 #else
 	temp_status = (uint8)rsi_bytes2R_to_uint16(descPtr + RSI_STATUS_OFFSET);
 	temp_rspCode = rsi_bytes2R_to_uint16(descPtr + RSI_RSP_TYPE_OFFSET);

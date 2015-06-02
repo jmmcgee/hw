@@ -43,7 +43,7 @@
 ;  Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
 
 
-Stack_Size      EQU     0x00001200
+Stack_Size      EQU     0x00001000
 
                 AREA    STACK, NOINIT, READWRITE, ALIGN=3
 Stack_Mem       SPACE   Stack_Size
@@ -74,8 +74,7 @@ __heap_limit
 				IMPORT  TimeTick_Increment
 				;IMPORT  EXINT7_IRQHandler
 				IMPORT  EXINT8_IRQHandler
-				IMPORT  DT1_2_IRQHandler
-					
+				IMPORT DT1_2_IRQHandler	
 
 __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     Reset_Handler             ; Reset Handler
@@ -148,8 +147,8 @@ __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     BT6_IRQHandler
                 DCD     BT7_IRQHandler
                 ;DCD     DT1_2_IRAHandler
-				DCD     DT1_2_IRQHandler
-                DCD     WC_IRQHandler
+            DCD   DT1_2_IRQHandler
+				DCD     WC_IRQHandler
                 DCD     EXTBUS_ERR_Handler
                 DCD     RTC_IRQHandler
                 ;DCD     EXTINT8_IRQHandler

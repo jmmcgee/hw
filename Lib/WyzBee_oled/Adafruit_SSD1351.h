@@ -107,8 +107,7 @@ class Adafruit_SSD1351  : public virtual Adafruit_GFX {
 
   void writeData(uint8_t d);
   void writeCommand(uint8_t c);
-  void writeString(char *, uint32_t len);
-  uint16_t getCursorX(), getCursorY();
+
 
   void writeData_unsafe(uint16_t d);
 

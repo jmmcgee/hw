@@ -19,6 +19,7 @@
  *
  */
 
+
 /**
  * Includes
  */
@@ -92,4 +93,6 @@ void rsi_build_frame_descriptor(rsi_uFrameDsc *uFrameDscFrame, uint8 *cmd)
 
   return;
 }
+
+
 

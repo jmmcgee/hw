@@ -20,14 +20,15 @@
 #ifndef WyzBeeWiFi_h
 #define WyzBeeWiFi_h
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <inttypes.h>
 #include <string.h>
 #include "spi.h"
 
 
-#define	MAX_SOCK_NUM		     4
-#define NA_STATE            -1
-#define WL_MAC_ADDR_LENGTH   6
 
 typedef struct 
 {
@@ -82,6 +83,7 @@ uint8   WyzBeeWiFi_status             (void);
 int16   WyzBeeWiFI_hostByName         (const int8* aHostname, uint8* aResult);
 int16   WyzBeeWiFi_NetParms           (NetWrk_Parms *ptr_net_parms);
 int16   WyzBeeWiFi_HttpPost           (int8  *p_http_url, HttpRequest  *p_http_data);
+//int16   WyzBeeWiFi_HttpPost           (HttpRequest  *p_http_data);
 int16   WyzBeeWiFi_HttpGet            (int8  *p_http_url, HttpRequest  *p_http_data, int8  *p_resp, uint16  resp_size);
 int16   WyzBeeWiFi_SocketOpen         (uint8  mode, uint8  *p_dest_ipaddr, uint16  dest_port_nbr);
 int16   WyzBeeWiFi_SocketClose        (uint16  sock_desc, uint16  dest_port_nbr);
@@ -93,6 +95,9 @@ uint8 *rsi_wrapper_to_rsp      (uint8 *rsp, uint8 rsp_type);
 rsi_uCmdRsp *rsi_parse_response(uint8 *rsp);
 void   rsi_receive_data_packet (uint8 *rx_pkt_payload, uint16 pkt_length);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // WyzBeeWiFi_h
 
