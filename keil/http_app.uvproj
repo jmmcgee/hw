@@ -171,7 +171,7 @@
             <Capability>1</Capability>
             <DriverSelection>4104</DriverSelection>
           </Flash1>
-          <bUseTDR>0</bUseTDR>
+          <bUseTDR>1</bUseTDR>
           <Flash2>BIN\CMSIS_AGDI.dll</Flash2>
           <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
@@ -425,6 +425,16 @@
               <FileName>main.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\App\main.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>remote.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\App\remote.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>remote.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\App\remote.h</FilePath>
             </File>
           </Files>
         </Group>
