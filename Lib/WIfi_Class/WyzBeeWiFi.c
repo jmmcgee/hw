@@ -1214,7 +1214,7 @@ int16  WyzBeeWiFi_HttpGet(int8  *p_http_url, HttpRequest  *p_http_req, int8  *p_
 			{
 				rsi_irq_enable();
 				len = (uint16)rsi_app_cb.uCmdRspFrame->uCmdRspPayLoad.httpFrameRcv.data_len;					//@ extract the data length from the response
-				if((len_2<=2500)&&(p_resp!=NULL))
+				if((len<=2500)&&(p_resp!=NULL))
 				{
 					memcpy(p_resp + (uint16) len_2, rsi_app_cb.uCmdRspFrame->uCmdRspPayLoad.httpFrameRcv.data, len); //@ copy received data into the local buffer
 				}
