@@ -63,6 +63,8 @@ public class DijkstraAI implements AIModule
         {
             // Poll for node to explore
             HeuristicPoint currentPoint = open.poll();
+            if(currentPoint.knownCost != knownCosts[currentPoint.x][currentPoint.y])
+            	continue;
             if(currentPoint.x == end.x && currentPoint.y == end.y) {
                 end = currentPoint;
                 break;
