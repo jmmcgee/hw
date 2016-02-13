@@ -11,7 +11,7 @@ import java.util.PriorityQueue;
 
 
 
-public class PerfectAI implements AIModule
+public class DijkstraAI implements AIModule
 {
     static public class HeuristicPoint extends Point implements Comparable<HeuristicPoint> {
         public HeuristicPoint(HeuristicPoint parent, Point p, double knownCost, double estimateCost){
@@ -100,16 +100,7 @@ public class PerfectAI implements AIModule
     // Cost 2: (getTile(p2) / (getTile(p1) + 1));
     private double getHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
     {
-    	// 1 + 1 < e + e^-1 ; 1 + 1 < e^2 + e^ ; 5 < 4e^-4 + 1
-    	// essence of heuristic := take difference in height, break into as many increments as it takes to get to the goal
-    	double heightDiff = map.getTile(pt2) - map.getTile(pt1);
-    	double manhattan = Math.abs((pt2.x - pt1.x) + (pt2.y - pt1.y));
-    	double euclidian = Math.sqrt((pt2.x - pt1.x)*(pt2.x - pt1.x) + (pt2.y - pt1.y)*(pt2.y - pt1.y));
-    	double distance = euclidian;
-    	
-    	//System.out.println("HEIGHT DIFF: " + heightDiff + "\tUNDER ESTIMATE: " + underEstimate);
-    	return distance*Math.exp(heightDiff/distance);
-
+    	return 0.0;
     }
 
 }
