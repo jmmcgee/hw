@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Iterator;
@@ -14,8 +15,10 @@ import java.util.Set;
 
 public class PerfectAI implements AIModule
 {
-    int nsize;
     static public class HeuristicPoint extends Point implements Comparable<HeuristicPoint> {
+    	public HeuristicPoint(Point p) {
+    		super(p);
+    	}
         public HeuristicPoint(HeuristicPoint parent, Point p, double knownCost, double estimateCost){
             super(p);
             this.parent = parent;
@@ -25,8 +28,8 @@ public class PerfectAI implements AIModule
 
         @Override
         public int compareTo(HeuristicPoint p2){
-            if(estimateCost < p2.estimateCost) return -1;
-            else if(estimateCost > p2.estimateCost) return 1;
+            if(knownCost < p2.knownCost) return -1;
+            else if(knownCost > p2.knownCost) return 1;
             else return 0;
         }
         public long getLongKey() {
@@ -45,60 +48,52 @@ public class PerfectAI implements AIModule
         // Holds the resulting path
         final ArrayList<Point> path = new ArrayList<Point>();
         Queue<HeuristicPoint> open = new PriorityQueue<HeuristicPoint>();
-        HashMap<Long, Boolean> closed = new HashMap<Long, Boolean>();
+        HashSet<Long> closed = new HashSet<Long>();
  
         double[][] knownCosts = new double[map.getWidth()][map.getHeight()];
-        for(int i = 0; i < map.getWidth(); i++)
-            for(int j = 0; j < map.getHeight(); j++)
+        double[][] estimateCosts = new double[map.getWidth()][map.getHeight()];
+        for(int i = 0; i < map.getWidth(); i++) {
+            for(int j = 0; j < map.getHeight(); j++) {
                 knownCosts[i][j] = Double.POSITIVE_INFINITY;
+                estimateCosts[i][j] = Double.POSITIVE_INFINITY;
+            }
+        }
 
         // Keep track of where we are and add the start point to the open set.
-        final Point start = map.getStartPoint();
-        HeuristicPoint end;
-        open.add(new HeuristicPoint(null, map.getStartPoint(), 0.0, 0.0));
+        final HeuristicPoint start = new HeuristicPoint(null, map.getStartPoint(), 0.0, 0.0);
+        HeuristicPoint end = new HeuristicPoint(map.getEndPoint());
+        open.add(start);
         knownCosts[start.x][start.y] = 0.0;
+        estimateCosts[start.x][start.y] = getHeuristic(map,start,end);
 
         // Keep moving horizontally until we match the target.
-        while(true)
+        while(!open.isEmpty())
         {
-            // Open is empty -> error
-            if(open.isEmpty()){
-                System.out.println("EMPTYPATH");
-                return path;
-            }
-
+            // Poll for node to explore
             HeuristicPoint currentPoint = open.poll();
-            // check to make sure is not deprecated instance of point (inferior knownCost)
-            if(currentPoint.knownCost > knownCosts[currentPoint.x][currentPoint.y])
-                continue;
-            if(currentPoint.knownCost < knownCosts[currentPoint.x][currentPoint.y])
-                System.out.println("Something is very wrong. known cost less than should be.");
-            
-            if(currentPoint.x == map.getEndPoint().x && currentPoint.y == map.getEndPoint().y) {
+            if(currentPoint.x == end.x && currentPoint.y == end.y) {
                 end = currentPoint;
                 break;
             }
+            
+            // add node to closed list
+            closed.add(currentPoint.getLongKey());
 
-            Point[] nbors = map.getNeighbors(currentPoint);
-            nsize = map.getNeighbors(currentPoint).length;
-            HeuristicPoint[] neighbors = new HeuristicPoint[nbors.length];
-            for(int i = 0; i < nbors.length; i++) {
-                double knownCost = map.getCost(currentPoint,nbors[i]) + currentPoint.knownCost;
-                double estimateCost = knownCost + getHeuristic(map, currentPoint, nbors[i]);
-                neighbors[i] = new HeuristicPoint(currentPoint, nbors[i], knownCost, estimateCost);
-            }
-
-            closed.put(currentPoint.getLongKey(), true);
-
-            for(int i = 0; i < neighbors.length; ++i) {
+            // Retrieve neighbors and update appropriately
+            for(Point p : map.getNeighbors(currentPoint)) {
+            	double knownCost = currentPoint.knownCost + map.getCost(currentPoint, p);
+            	double estimateCost = knownCost + getHeuristic(map, p, end);
+            	HeuristicPoint nbor = new HeuristicPoint(currentPoint, p, knownCost, estimateCost);
+            	
                 // if already in closed set, skip
-                if( closed.get(neighbors[i].getLongKey()) != null )
+                if( closed.contains(nbor.getLongKey()) )
                     continue;
 
                 // add to open set if knownCost beats (is less than) current stored knownCost for this point
-                if( neighbors[i].knownCost < knownCosts[neighbors[i].x][neighbors[i].y] ) {
-                    open.add(neighbors[i]);
-                    knownCosts[neighbors[i].x][neighbors[i].y] = neighbors[i].knownCost;
+                if( nbor.knownCost < knownCosts[nbor.x][nbor.y] ) {
+                    open.add(nbor);
+                    knownCosts[nbor.x][nbor.y] = nbor.knownCost;
+                    estimateCosts[nbor.x][nbor.y] = nbor.estimateCost;
                 }
             }
         }
@@ -108,8 +103,6 @@ public class PerfectAI implements AIModule
             path.add(node);
         }
         Collections.reverse(path);
-        System.out.println("Num Neighbors: "+ nsize);
-        // We're done!  Hand it back.
         return path;
     }
 
@@ -120,7 +113,7 @@ public class PerfectAI implements AIModule
     // Cost 2: (getTile(p2) / (getTile(p1) + 1));
     private double getHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
     {
-        return 1;
+        return 0.0;
     }
 
 }
