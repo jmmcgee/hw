@@ -1,11 +1,9 @@
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 
@@ -13,6 +11,8 @@ import java.util.PriorityQueue;
 
 public class PerfectAI implements AIModule
 {
+    private static final double SQRT_2 = Math.sqrt(2.0);
+
     static public class HeuristicPoint extends Point implements Comparable<HeuristicPoint> {
         public HeuristicPoint(HeuristicPoint parent, Point p, double knownCost, double estimateCost){
             super(p);
@@ -78,8 +78,8 @@ public class PerfectAI implements AIModule
             	double knownCost = currentPoint.knownCost + map.getCost(currentPoint, p);
             	double estimateCost = knownCost + getHeuristic(map, p, end);
             	HeuristicPoint nbor = new HeuristicPoint(currentPoint, p, knownCost, estimateCost);
-            	
                 // if already in closed set, skip
+            	
                 if( closed.contains(nbor.getLongKey()) )
                     continue;
 
@@ -91,27 +91,34 @@ public class PerfectAI implements AIModule
             }
         }
 
-        for(HeuristicPoint node = end; node != null; node = node.parent) {
-            path.add(node);
-        }
-        Collections.reverse(path);
+	        for(HeuristicPoint node = end; node != null; node = node.parent) {
+	            path.add(node);
+	        }
+	        Collections.reverse(path);
         return path;
     }
 
-    // Cost 1: Math.exp(getTile(p2) - getTile(p1));
-    // Cost 2: (getTile(p2) / (getTile(p1) + 1));
     private double getHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
+    {
+    	return getExponentialHeuristic(map,pt1,pt2);
+    	//return getDivisiveHeuristic(map,pt1,pt2);
+    }
+
+    // Cost 1: Math.exp(getTile(p2) - getTile(p1));
+    private double getExponentialHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
     {
     	// 1 + 1 < e + e^-1 ; 1 + 1 < e^2 + e^ ; 5 < 4e^-4 + 1
     	// essence of heuristic := take difference in height, break into as many increments as it takes to get to the goal
-    	double heightDiff = map.getTile(pt2) - map.getTile(pt1);
-    	double manhattan = Math.abs((pt2.x - pt1.x) + (pt2.y - pt1.y));
-    	double euclidian = Math.sqrt((pt2.x - pt1.x)*(pt2.x - pt1.x) + (pt2.y - pt1.y)*(pt2.y - pt1.y));
-    	double distance = euclidian;
-    	
-    	//System.out.println("HEIGHT DIFF: " + heightDiff + "\tUNDER ESTIMATE: " + underEstimate);
-    	return distance*Math.exp(heightDiff/distance);
+    	final double heightDiff = map.getTile(pt2) - map.getTile(pt1);
+    	final double distance = Math.max(Math.abs(pt2.y-pt1.y), Math.abs(pt2.x-pt1.x));
 
+    	return distance*Math.exp(heightDiff/distance);
+    }
+    
+    // Cost 2: (getTile(p2) / (getTile(p1) + 1));
+    private double getDivisiveHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
+    {
+		return 0.0;
     }
 
 }
