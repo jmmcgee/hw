@@ -100,8 +100,8 @@ public class PerfectAI implements AIModule
 
     private double getHeuristic(final TerrainMap map, final Point pt1, final Point pt2)
     {
-    	//return getExponentialHeuristic(map,pt1,pt2);
-    	return getDivisiveHeuristic(map,pt1,pt2);
+    	return getExponentialHeuristic(map,pt1,pt2);
+    	//return getDivisiveHeuristic(map,pt1,pt2);
     }
 
     // Cost 1: Math.exp(getTile(p2) - getTile(p1));
