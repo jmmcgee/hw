@@ -29,6 +29,7 @@ def loadSchema():
     cur.close()
 
 def loadData():
+    print "TODO: loadData(): Update to use thoughtful schema, load all tables"
     cur = con.cursor()
 
     # load Household values
@@ -37,11 +38,8 @@ def loadData():
         # read csv, throw away header
         reader = csv.reader(f)
         row = next(reader)
-        i = 0
         for row in reader:
             values = (int(row[0]),)
-            print i,values
-            i = i + 1
             cur.execute(query, values)
 
     # load Person values
@@ -53,8 +51,6 @@ def loadData():
         i = 0
         for row in reader:
             values = (int(row[0]), int(row[1]))
-            print i,values
-            i = i + 1
             cur.execute(query, values)
 
     # load Vehicle values
@@ -65,7 +61,6 @@ def loadData():
         row = next(reader)
         for row in reader:
             values = (int(row[0]), int(row[2]))
-            print i,values
             cur.execute(query, values)
 
     # load TravelDay values
@@ -76,9 +71,8 @@ def loadData():
         row = next(reader)
         for row in reader:
             values = (int(row[0]), int(row[1]), int(row[19]))
-            print values
             cur.execute(query, values)
-    print "TODO: implement loadData()"
+    cur.close()
 
 
 # Actually do stuff after all
