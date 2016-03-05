@@ -9,43 +9,9 @@ import csv
 con = None
 db = 'postgres'
 host = '/home/' + os.environ['USER'] + '/postgres'
-dataRoot = '../data'
+dataRoot = 'data'
+srcRoot = 'src'
 
-dropAll = """
-DROP TABLE IF EXISTS Household, Person, Vehicle, TravelDay
-"""
-
-householdTable = """
-CREATE TABLE Household (
-    houseid INTEGER, -- 1
-    PRIMARY KEY(houseid)
-);
-"""
-
-personTable = """
-CREATE TABLE Person (
-    houseid INTEGER, -- 1
-    personid INTEGER, -- 2
-    PRIMARY KEY(houseid, personid)
-);
-"""
-
-vehicleTable = """
-CREATE TABLE Vehicle (
-    houseid INTEGER, -- 1
-    vehid INTEGER, -- 3
-    PRIMARY KEY(houseid, vehid)
-);
-"""
-
-travelDayTable = """
-CREATE TABLE TravelDay (
-    houseid INTEGER, -- 1
-    personid INTEGER, -- 2
-    tdcaseid INTEGER, -- 20
-    PRIMARY KEY(houseid, personid, tdcaseid)
-);
-"""
 def connect():
     global con
     con = psycopg2.connect(database=db, host=host)
@@ -56,32 +22,62 @@ def connect():
     cur.close()
 
 def loadSchema():
-    print "TODO: implement loadSchema()"
+    print "TODO: loadSchema(): create usefuel database schema"
     cur = con.cursor()
-    cur.execute(dropAll)
-    cur.execute(householdTable)
-    cur.execute(personTable)
-    cur.execute(vehicleTable)
-    cur.execute(travelDayTable)
+    query = open('src/schema.sql','r').read()
+    cur.execute(query);
     cur.close()
 
 def loadData():
     cur = con.cursor()
 
-    # define query for inserting into Person
-    query = 'INSERT INTO Person(houseid, personid) VALUES (%s , %s);'
+    # load Household values
+    query = 'INSERT INTO Household(houseid) VALUES (%s);'
+    with open(dataRoot + '/Household.head.csv', 'r') as f:
+        # read csv, throw away header
+        reader = csv.reader(f)
+        row = next(reader)
+        i = 0
+        for row in reader:
+            values = (int(row[0]),)
+            print i,values
+            i = i + 1
+            cur.execute(query, values)
 
-    i = 0
+    # load Person values
+    query = 'INSERT INTO Person(houseid, personid) VALUES (%s , %s);'
     with open(dataRoot + '/Person.head.csv', 'r') as f:
         # read csv, throw away header
         reader = csv.reader(f)
         row = next(reader)
+        i = 0
         for row in reader:
-            data = (int(row[0]), int(row[1]))
-            print i, data
-            cur.execute(query, data)
+            values = (int(row[0]), int(row[1]))
+            print i,values
             i = i + 1
+            cur.execute(query, values)
 
+    # load Vehicle values
+    query = 'INSERT INTO Vehicle(houseid, vehid) VALUES (%s , %s);'
+    with open(dataRoot + '/Vehicle.head.csv', 'r') as f:
+        # read csv, throw away header
+        reader = csv.reader(f)
+        row = next(reader)
+        for row in reader:
+            values = (int(row[0]), int(row[2]))
+            print i,values
+            cur.execute(query, values)
+
+    # load TravelDay values
+    query = 'INSERT INTO TravelDay(houseid, personid, tdcaseid) VALUES (%s , %s, %s);'
+    with open(dataRoot + '/TravelDay.head.csv', 'r') as f:
+        # read csv, throw away header
+        reader = csv.reader(f)
+        row = next(reader)
+        for row in reader:
+            values = (int(row[0]), int(row[1]), int(row[19]))
+            print values
+            cur.execute(query, values)
     print "TODO: implement loadData()"
 
 
