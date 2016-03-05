@@ -10,7 +10,6 @@ db = 'postgres'
 host = '/home/' + os.environ['USER'] + '/postgres'
 
 try:
-    #con = psycopg2.connect(database='postgres', host='localhost:5432')
     con = psycopg2.connect(database=db, host=host)
     cur = con.cursor()
     cur.execute('SELECT version()')
