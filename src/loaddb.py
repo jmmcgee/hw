@@ -41,6 +41,7 @@ def loadData():
         for row in reader:
             values = (int(row[0]),)
             cur.execute(query, values)
+    con.commit()
 
     # load Person values
     query = 'INSERT INTO Person(houseid, personid) VALUES (%s , %s);'
@@ -52,6 +53,7 @@ def loadData():
         for row in reader:
             values = (int(row[0]), int(row[1]))
             cur.execute(query, values)
+    con.commit()
 
     # load Vehicle values
     query = 'INSERT INTO Vehicle(houseid, vehid) VALUES (%s , %s);'
@@ -62,6 +64,7 @@ def loadData():
         for row in reader:
             values = (int(row[0]), int(row[2]))
             cur.execute(query, values)
+    con.commit()
 
     # load TravelDay values
     query = 'INSERT INTO TravelDay(houseid, personid, tdcaseid) VALUES (%s , %s, %s);'
@@ -72,8 +75,8 @@ def loadData():
         for row in reader:
             values = (int(row[0]), int(row[1]), int(row[19]))
             cur.execute(query, values)
+    con.commit()
     cur.close()
-
 
 # Actually do stuff after all
 try:

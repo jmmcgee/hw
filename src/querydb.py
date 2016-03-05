@@ -27,24 +27,32 @@ def queryData():
     cur = con.cursor()
 
     # query Household values
-    query = 'SELECT * FROM Household(houseid);'
+    query = 'SELECT * FROM Household LIMIT 3'
     cur.execute(query);
-    print cur.fetchall();
+    print 'Household'
+    for values in cur.fetchall():
+        print values
 
     # query Person values
-    query = 'SELECT * FROM Person(houseid, personid);'
+    query = 'SELECT * FROM Person LIMIT 3'
     cur.execute(query);
-    print cur.fetchall();
+    print 'Person'
+    for values in cur.fetchall():
+        print values
 
     # query Vehicle values
-    query = 'SELECT * FROM Vehicle(houseid, vehid);'
+    query = 'SELECT * FROM Vehicle LIMIT 3'
     cur.execute(query);
-    print cur.fetchall();
+    print 'Vehicle'
+    for values in cur.fetchall():
+        print values
 
     # query TravelDay values
-    query = 'SELECT * FROM TravelDay(houseid, personid, tdcaseid);'
+    query = 'SELECT * FROM TravelDay LIMIT 3'
     cur.execute(query);
-    print cur.fetchall();
+    print 'TravelDay'
+    for values in cur.fetchall():
+        print values
 
 def query3a():
     print "TODO: query3a(): percent of people that travel 5-100 miles a day in 5-mile increments" 
