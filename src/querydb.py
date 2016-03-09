@@ -10,7 +10,6 @@ con = None
 db = 'postgres'
 host = '/home/' + os.environ['USER'] + '/postgres'
 user = os.environ['USER']
-dataRoot = 'data'
 srcRoot = 'src'
 
 def connect():
@@ -27,38 +26,61 @@ def queryData():
     cur = con.cursor()
 
     # query Household values
-    query = 'SELECT * FROM Household LIMIT 3'
+    query = 'SELECT * FROM Household LIMIT 10'
     cur.execute(query);
     print 'Household'
     for values in cur.fetchall():
         print values
 
     # query Person values
-    query = 'SELECT * FROM Person LIMIT 3'
+    query = 'SELECT * FROM Person LIMIT 10'
     cur.execute(query);
     print 'Person'
     for values in cur.fetchall():
         print values
 
     # query Vehicle values
-    query = 'SELECT * FROM Vehicle LIMIT 3'
+    query = 'SELECT * FROM Vehicle LIMIT 10'
     cur.execute(query);
     print 'Vehicle'
     for values in cur.fetchall():
         print values
 
     # query TravelDay values
-    query = 'SELECT * FROM TravelDay LIMIT 3'
+    query = 'SELECT * FROM TravelDay LIMIT 10'
     cur.execute(query);
     print 'TravelDay'
     for values in cur.fetchall():
         print values
 
+    cur.close()
+
 def query3a():
-    print "TODO: query3a(): percent of people that travel 5-100 miles a day in 5-mile increments" 
+    print "query3a(): percent of people that travel 5-100 miles a day in 5-mile increments" 
+    cur = con.cursor()
+    query = open(srcRoot + '/query3a.sql', 'r').read()
+
+    for maxMiles in xrange(5,100,5):
+        q = query % maxMiles
+        cur.execute(q);
+        for values in cur.fetchone():
+            print maxMiles, values
+
+    cur.close()
 
 def query3b():
     print "TODO: query3b(): avg fuel economy for trip grouped as 3a histogram" 
+    cur = con.cursor()
+    query = open(srcRoot + '/query3b.sql', 'r').read()
+
+    for maxMiles in xrange(5,100,5):
+        q = query.format(maxMiles)
+        #q = query
+        cur.execute(q);
+        for values in cur.fetchall():
+            print maxMiles, values
+
+    cur.close()
 
 def query3c():
     print "TODO: query3c(): percent of transportation CO2 attributed to vehicles" 
@@ -69,11 +91,11 @@ def query3d():
 # Actually do stuff after all
 try:
     connect()
-    queryData()
-    query3a()
-    query3b()
+    #queryData()
+    #query3a()
+    #query3b()
     query3c()
-    query3d()
+    #query3d()
 
 except psycopg2.DatabaseError, e:
     print 'Error %s' % e
