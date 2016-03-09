@@ -91,10 +91,10 @@ def query3d():
 # Actually do stuff after all
 try:
     connect()
-    #queryData()
-    #query3a()
-    #query3b()
-    query3c()
+    queryData()
+    query3a()
+    query3b()
+    #query3c()
     #query3d()
 
 except psycopg2.DatabaseError, e:
