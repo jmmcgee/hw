@@ -69,13 +69,12 @@ def query3a():
     cur.close()
 
 def query3b():
-    print "TODO: query3b(): avg fuel economy for trip grouped as 3a histogram" 
+    print "query3b(): avg fuel economy for trip grouped as 3a histogram" 
     cur = con.cursor()
     query = open(srcRoot + '/query3b.sql', 'r').read()
 
     for maxMiles in xrange(5,100,5):
         q = query.format(maxMiles)
-        #q = query
         cur.execute(q);
         for values in cur.fetchall():
             print maxMiles, values
@@ -83,19 +82,40 @@ def query3b():
     cur.close()
 
 def query3c():
-    print "TODO: query3c(): percent of transportation CO2 attributed to vehicles" 
+    print "query3c(): percent of transportation CO2 attributed to vehicles" 
+    cur = con.cursor()
+    query = open(srcRoot + '/query3c.sql', 'r').read()
+    totalNumHouseholds = 117538000
+
+    q = query.format(totalNumHouseholds)
+    cur.execute(q, totalNumHouseholds);
+    for values in cur.fetchall():
+        print values
+
+    cur.close()
 
 def query3d():
-    print "TODO: query3d(): change in CO2 over months of survey w/ hybrids in 20,40,60 mile ranges" 
+    print "query3d(): change in CO2 over months of survey w/ hybrids in 20,40,60 mile ranges" 
+    cur = con.cursor()
+    query = open(srcRoot + '/query3d.sql', 'r').read()
+    totalNumHouseholds = 117538000
+
+    for evrange in [20,40,60]:
+        q = query.format(totalNumHouseholds,evrange)
+        cur.execute(q, totalNumHouseholds);
+        for values in cur.fetchall():
+            print evrange, values
+
+    cur.close()
 
 # Actually do stuff after all
 try:
     connect()
-    queryData()
+    #queryData()
     query3a()
     query3b()
-    #query3c()
-    #query3d()
+    query3c()
+    query3d()
 
 except psycopg2.DatabaseError, e:
     print 'Error %s' % e
