@@ -97,14 +97,44 @@ def query3c():
 def query3d():
     print "query3d(): change in CO2 over months of survey w/ hybrids in 20,40,60 mile ranges" 
     cur = con.cursor()
-    query = open(srcRoot + '/query3d.sql', 'r').read()
+    q_gas = open(srcRoot + '/query3d_gas.sql', 'r').read()
+    q_hybridLess = open(srcRoot + '/query3d_hybridLesser.sql', 'r').read()
+    q_hybridGreat = open(srcRoot + '/query3d_hybridGreater.sql', 'r').read()
     totalNumHouseholds = 117538000
 
     for evrange in [20,40,60]:
-        q = query.format(totalNumHouseholds,evrange)
-        cur.execute(q, totalNumHouseholds);
-        for values in cur.fetchall():
-            print evrange, values
+        cur.execute(q_gas.format(totalNumHouseholds, evrange));
+        gas = cur.fetchall();
+        cur.execute(q_hybridLess.format(totalNumHouseholds, evrange));
+        hybridLess = cur.fetchall();
+        cur.execute(q_hybridGreat.format(totalNumHouseholds, evrange));
+        hybridGreat = cur.fetchall();
+
+        keys = []
+        gasCO2 = {}
+        hybridCO2 = {}
+        for row in gas:
+            year = row[0]
+            month = row[1]
+            keys.append("%04d%02d" % (year, month))
+        for row in gas:
+            year = row[0]
+            month = row[1]
+            CO2 = row[2]
+            gasCO2["%04d%02d" % (year, month)] = CO2
+        for row in hybridLess:
+            year = row[0]
+            month = row[1]
+            CO2 = row[2]
+            hybridCO2["%04d%02d" % (year, month)] = CO2
+        for row in hybridGreat:
+            year = row[0]
+            month = row[1]
+            CO2 = row[2]
+            hybridCO2["%04d%02d" % (year, month)] += CO2
+    
+        for key in keys:
+            print evrange, key,"gas=%9d\thybrid=%9d\t->\tdiff=%+8d" % (gasCO2[key],hybridCO2[key],hybridCO2[key]-gasCO2[key])
 
     cur.close()
 
