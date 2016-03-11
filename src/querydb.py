@@ -60,10 +60,10 @@ def query3a():
     cur = con.cursor()
     query = open(srcRoot + '/query3a.sql', 'r').read()
 
-    for maxMiles in xrange(5,100,5):
+    for maxMiles in xrange(5,105,5):
         q = query % maxMiles
         cur.execute(q);
-        for values in cur.fetchone():
+        for values in cur.fetchone():   
             print maxMiles, values
 
     cur.close()
@@ -73,7 +73,7 @@ def query3b():
     cur = con.cursor()
     query = open(srcRoot + '/query3b.sql', 'r').read()
 
-    for maxMiles in xrange(5,100,5):
+    for maxMiles in xrange(5,105,5):
         q = query.format(maxMiles)
         cur.execute(q);
         for values in cur.fetchall():
